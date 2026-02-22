@@ -1,3 +1,4 @@
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'ekspertiz_sema.dart';
@@ -7,21 +8,50 @@ class RaporSayfasi extends StatelessWidget {
 
   const RaporSayfasi({super.key, required this.veri});
 
-  // SAYI FORMATLAYICI: 11500000 -> 11.500.000 yapar
+  // --- PAYLAŞIM FONKSİYONU GÜNCELLENDİ ---
+  void _raporuPaylas(BuildContext context) {
+    try {
+      final arac = veri['arac_bilgileri'] ?? {};
+      final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
+      final piyasa = veri['piyasa_analizi'] ?? {};
+
+      // WhatsApp için profesyonel metin şablonu
+      String paylasimMetni = """
+🚗 *AUTO-SCAN PRO EKSPERTİZ RAPORU* 🚗
+---------------------------------------
+📌 *Araç:* ${arac['marka'] ?? ''} ${arac['model'] ?? ''} (${arac['yil'] ?? '-'})
+💰 *Fiyat:* ${_formatSayi(arac['fiyat'])} TL
+🛣️ *KM:* ${_formatSayi(arac['kilometre'])} km
+
+🛠️ *Yapay Zeka Mekanik Yorumu:*
+"${teknik['yapay_zeka_mekanik_yorumu'] ?? 'Analiz mevcut değil.'}"
+
+📊 *Piyasa Değerlendirmesi:*
+• Likidite: ${piyasa['ikinci_el_likiditesi'] ?? '-'}
+• Fiyat Durumu: ${piyasa['fiyat_degerlendirmesi'] ?? '-'}
+
+💡 _Bu rapor AUTO-SCAN PRO AI tarafından oluşturulmuştur._
+""";
+
+      Share.share(paylasimMetni);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Paylaşım başlatılamadı: $e")),
+      );
+    }
+  }
+
   String _formatSayi(dynamic sayi) {
     if (sayi == null || sayi.toString().isEmpty) return "-";
-    
-    // Varsa mevcut noktaları ve yazıları temizle (Sadece rakam kalsın)
     String temizSayi = sayi.toString().replaceAll(RegExp(r'[^0-9]'), '');
     if (temizSayi.isEmpty) return sayi.toString();
-
-    // Regex ile binlik ayırıcı ekle
     RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
     return temizSayi.replaceAllMapped(reg, (Match m) => '${m[1]}.');
   }
 
   @override
   Widget build(BuildContext context) {
+    // Verileri lokal değişkenlere ata (Senin mevcut yapın)
     final arac = veri['arac_bilgileri'] ?? {};
     final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
     final ekspertiz = veri['ekspertiz_durumu'] ?? {};
@@ -43,6 +73,15 @@ class RaporSayfasi extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black87),
+        actions: [
+          // PAYLAŞ BUTONU
+          IconButton(
+            icon: const Icon(Icons.share_outlined, color: Colors.black87),
+            onPressed: () => _raporuPaylas(context),
+            tooltip: "WhatsApp ile Paylaş",
+          ),
+          const SizedBox(width: 10),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -76,7 +115,6 @@ class RaporSayfasi extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -95,7 +133,6 @@ class RaporSayfasi extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          // FORMATLANMIŞ FİYAT
                           "${_formatSayi(arac['fiyat'])} TL",
                           style: const TextStyle(
                             fontSize: 16, 
@@ -111,7 +148,6 @@ class RaporSayfasi extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _ozetHucre("YIL", arac['yil'].toString()),
-                      // FORMATLANMIŞ KM
                       _ozetHucre("KM", _formatSayi(arac['kilometre'])),
                       _ozetHucre("YAKIT", arac['yakit_tipi'] ?? "-"),
                       _ozetHucre("VİTES", arac['vites'] ?? "-"),
@@ -125,9 +161,8 @@ class RaporSayfasi extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
+            // ... (Geri kalan kodların aynı şekilde devam ediyor)
             _eliteBilgiKarti(
               baslik: "Yapay Zeka Mekanik Analizi",
               icon: Icons.auto_awesome,
@@ -135,7 +170,7 @@ class RaporSayfasi extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _bilgiSatiri("Motor / Şanzıman", "${teknik['motor_kodu']} - ${teknik['sanziman_tipi']}"),
+                  _bilgiSatiri("Motor / Şanzıman", "${teknik['motor_kodu'] ?? '-'} - ${teknik['sanziman_tipi'] ?? '-'}"),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -157,12 +192,7 @@ class RaporSayfasi extends StatelessWidget {
                   const SizedBox(height: 20),
                   const Text(
                     "⚠️ TESPİT EDİLEN KRONİK RİSKLER", 
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      fontSize: 11, 
-                      color: Colors.redAccent, 
-                      letterSpacing: 0.5,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.redAccent, letterSpacing: 0.5),
                   ),
                   const SizedBox(height: 10),
                   ...(teknik['kronik_sorunlar'] as List? ?? []).map((s) => 
@@ -171,23 +201,16 @@ class RaporSayfasi extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 2),
-                            child: Icon(Icons.warning_amber_rounded, size: 14, color: Colors.redAccent),
-                          ),
+                          const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.redAccent),
                           const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(s, style: const TextStyle(fontSize: 13, color: Colors.black87)),
-                          ),
+                          Expanded(child: Text(s, style: const TextStyle(fontSize: 13, color: Colors.black87))),
                         ],
                       ),
                     )),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
             _eliteBilgiKarti(
               baslik: "Piyasa ve Likidite",
               icon: Icons.insights,
@@ -206,6 +229,7 @@ class RaporSayfasi extends StatelessWidget {
     );
   }
 
+  // Yardımcı Widget'lar (Private metodlar olarak aşağıda tutmak temiz koddur)
   Widget _ozetHucre(String etiket, String deger) {
     return Column(
       children: [
@@ -224,10 +248,7 @@ class RaporSayfasi extends StatelessWidget {
         children: [
           Text(baslik.toUpperCase(), style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
           const SizedBox(height: 6),
-          Text(
-            icerik?.toString() ?? "-", 
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-          ),
+          Text(icerik?.toString() ?? "-", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
         ],
       ),
     );
@@ -240,9 +261,7 @@ class RaporSayfasi extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,12 +270,7 @@ class RaporSayfasi extends StatelessWidget {
             children: [
               Icon(icon, size: 20, color: accentColor),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  baslik, 
-                  style: GoogleFonts.rajdhani(fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-              ),
+              Expanded(child: Text(baslik, style: GoogleFonts.rajdhani(fontSize: 17, fontWeight: FontWeight.bold))),
             ],
           ),
           const SizedBox(height: 20),

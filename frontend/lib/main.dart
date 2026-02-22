@@ -75,7 +75,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   // --- YENİ: VERİTABANINDAN GEÇMİŞİ ÇEKEN FONKSİYON ---
   Future<List<GecmisAnaliz>> getGecmisAnalizler() async {
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:8000/gecmis'));
+      final response = await http.get(Uri.parse('http://localhost:8000/gecmis'));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
         return body.map((item) => GecmisAnaliz.fromJson(item)).toList();
@@ -116,7 +116,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     _startLoadingMessages();
 
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('http://127.0.0.1:8000/analiz'));
+      var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/analiz'));
       if (fotoDetay != null) request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
       if (fotoAciklama != null) request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
       request.fields['manuel_text'] = _manuelGirisController.text;
