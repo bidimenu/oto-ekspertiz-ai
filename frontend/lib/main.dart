@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
 import 'package:desktop_window/desktop_window.dart';
-import 'package:google_fonts/google_fonts.dart'; // Yeni ekledik
+import 'package:google_fonts/google_fonts.dart';
 import 'rapor_sayfasi.dart';
 
 void main() async {
@@ -26,8 +26,8 @@ class OtoEkspertizApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        textTheme: GoogleFonts.interTextTheme(), // Modern tipografi
-        scaffoldBackgroundColor: const Color(0xFFF5F5F7), // Apple tarzı soft gri
+        textTheme: GoogleFonts.interTextTheme(),
+        scaffoldBackgroundColor: const Color(0xFFF5F5F7),
       ),
       home: const AnalizEkrani(),
     );
@@ -46,6 +46,9 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   bool yukleniyor = false;
   Map<String, dynamic>? sonuc;
   final picker = ImagePicker();
+  
+  // Yeni eklenen controller
+  final TextEditingController _manuelGirisController = TextEditingController();
 
   Future fotoSec(bool detayMi) async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
@@ -58,12 +61,29 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   }
 
   Future analizGonder() async {
-    if (fotoDetay == null || fotoAciklama == null) return;
+    // Hem fotoğraflar yoksa hem de metin boşsa uyarı ver
+    if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")),
+      );
+      return;
+    }
+
     setState(() => yukleniyor = true);
     try {
       var request = http.MultipartRequest('POST', Uri.parse('http://127.0.0.1:8000/analiz'));
-      request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
-      request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
+      
+      // Fotoğraflar varsa ekle
+      if (fotoDetay != null) {
+        request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
+      }
+      if (fotoAciklama != null) {
+        request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
+      }
+      
+      // Manuel metni her durumda gönder (boş olsa bile backend karşılayabilir)
+      request.fields['manuel_text'] = _manuelGirisController.text;
+
       var response = await request.send();
       var responseData = await response.stream.bytesToString();
       if (response.statusCode == 200) {
@@ -87,11 +107,9 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // HEADER SECTİON
               _buildHeader(),
-              const SizedBox(height: 40),
+              const SizedBox(height: 35),
 
-              // UPLOAD CARDS
               _buildUploadCard(
                 title: "İLAN AÇIKLAMASI",
                 subtitle: "Ekran görüntüsü veya dosya",
@@ -108,16 +126,34 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                 onTap: () => fotoSec(false),
               ),
               
-              const SizedBox(height: 30),
-              const Center(child: Text("MANUEL BİLGİ GİRİŞİ", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2))),
+              const SizedBox(height: 25),
+              const Center(child: Text("VEYA MANUEL BİLGİ GİRİŞİ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2))),
               const SizedBox(height: 15),
 
-              // ANALYZE BUTTON
+              // MANUEL TEXT BOX
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+                ),
+                child: TextField(
+                  controller: _manuelGirisController,
+                  maxLines: 4,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: "Örn: Opel Tigra 2005 cabrio 175 bin km, sağ çamurluk boyalı, ön kaput değişen...",
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+                    contentPadding: const EdgeInsets.all(20),
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 25),
               _buildMainButton(),
 
-              const SizedBox(height: 50),
-              
-              // LAST SCANS SECTION
+              const SizedBox(height: 45),
               const Text("LAST SCANS", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 15),
               _buildLastScans(),
@@ -128,6 +164,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     );
   }
 
+  // Yardımcı metodların (Header, Button vb.) yerini ve işlevini korudum
   Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
