@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async'; // Timer için gerekli
 import 'package:desktop_window/desktop_window.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'rapor_sayfasi.dart';
@@ -46,9 +47,40 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   bool yukleniyor = false;
   Map<String, dynamic>? sonuc;
   final picker = ImagePicker();
-  
-  // Yeni eklenen controller
   final TextEditingController _manuelGirisController = TextEditingController();
+
+  // --- YENİ: YÜKLEME MESAJLARI MANTIĞI ---
+  int mesajIndex = 0;
+  Timer? _mesajTimer;
+  final List<String> analizMesajlari = [
+    "Görüntüler işleniyor...",
+    "Ekspertiz detayları ayıklanıyor...",
+    "Motor, şanzıman değerlendiriliyor...",
+    "Kronik sorunlar analiz ediliyor...",
+    "Piyasa verileri karşılaştırılıyor...",
+    "Final raporu hazırlanıyor...",
+  ];
+
+  void _startLoadingMessages() {
+    mesajIndex = 0;
+    _mesajTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted && yukleniyor) {
+        setState(() {
+          mesajIndex = (mesajIndex + 1) % analizMesajlari.length;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _mesajTimer?.cancel();
+    _manuelGirisController.dispose();
+    super.dispose();
+  }
+  // ---------------------------------------
 
   Future fotoSec(bool detayMi) async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
@@ -61,7 +93,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   }
 
   Future analizGonder() async {
-    // Hem fotoğraflar yoksa hem de metin boşsa uyarı ver
     if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")),
@@ -69,19 +100,15 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       return;
     }
 
-    setState(() => yukleniyor = true);
+    setState(() {
+      yukleniyor = true;
+    });
+    _startLoadingMessages(); // Mesaj döngüsünü başlat
+
     try {
       var request = http.MultipartRequest('POST', Uri.parse('http://127.0.0.1:8000/analiz'));
-      
-      // Fotoğraflar varsa ekle
-      if (fotoDetay != null) {
-        request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
-      }
-      if (fotoAciklama != null) {
-        request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
-      }
-      
-      // Manuel metni her durumda gönder (boş olsa bile backend karşılayabilir)
+      if (fotoDetay != null) request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
+      if (fotoAciklama != null) request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
       request.fields['manuel_text'] = _manuelGirisController.text;
 
       var response = await request.send();
@@ -94,7 +121,10 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
     } finally {
-      setState(() => yukleniyor = false);
+      setState(() {
+        yukleniyor = false;
+      });
+      _mesajTimer?.cancel(); // İşlem bittiğinde timer'ı durdur
     }
   }
 
@@ -109,7 +139,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
             children: [
               _buildHeader(),
               const SizedBox(height: 35),
-
               _buildUploadCard(
                 title: "İLAN AÇIKLAMASI",
                 subtitle: "Ekran görüntüsü veya dosya",
@@ -125,12 +154,9 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                 file: fotoAciklama,
                 onTap: () => fotoSec(false),
               ),
-              
               const SizedBox(height: 25),
               const Center(child: Text("VEYA MANUEL BİLGİ GİRİŞİ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2))),
               const SizedBox(height: 15),
-
-              // MANUEL TEXT BOX
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -149,10 +175,8 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 25),
-              _buildMainButton(),
-
+              _buildMainButton(), // Güncellenmiş buton
               const SizedBox(height: 45),
               const Text("LAST SCANS", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 15),
@@ -164,7 +188,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     );
   }
 
-  // Yardımcı metodların (Header, Button vb.) yerini ve işlevini korudum
   Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,7 +242,24 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   Widget _buildMainButton() {
     return Center(
       child: yukleniyor 
-        ? const CircularProgressIndicator(color: Colors.cyan)
+        ? Column( // Yüklenirken gösterilecek alan
+            children: [
+              const CircularProgressIndicator(color: Colors.cyan),
+              const SizedBox(height: 15),
+              AnimatedSwitcher( // Mesajlar arası yumuşak geçiş
+                duration: const Duration(milliseconds: 500),
+                child: Text(
+                  analizMesajlari[mesajIndex],
+                  key: ValueKey<String>(analizMesajlari[mesajIndex]),
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.cyan[700],
+                  ),
+                ),
+              ),
+            ],
+          )
         : GestureDetector(
             onTap: analizGonder,
             child: Container(

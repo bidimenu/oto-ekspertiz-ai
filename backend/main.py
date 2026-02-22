@@ -18,6 +18,44 @@ app = FastAPI(title="AUTO-SCAN PRO API", version="1.2")
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel('gemini-2.5-flash')
 
+
+DEBUG_MODE = True 
+
+MOCK_DATA = {
+    "arac_bilgileri": {
+        "marka": "Opel",
+        "model": "Tigra 1.8 Sport",
+        "kasa_kodu": "S93",
+        "yil": "2005",
+        "yakit_tipi": "Benzin",
+        "vites": "Manuel",
+        "kilometre": "175.000",
+        "motor_gucu": "125 HP",
+        "agir_hasarli": "Hayır",
+        "fiyat": "450.000"
+    },
+    "ekspertiz_durumu": {
+        "boyali_parcalar": ["Sağ Ön Çamurluk"],
+        "degisen_parcalar": ["Ön Kaput"],
+        "hasar_kaydi": "4.500 TL"
+    },
+    "teknik_ve_kronik_bilgiler": {
+        "motor_kodu": "Z18XE",
+        "sanziman_tipi": "F17",
+        "kronik_sorunlar": ["Hardtop tavan piston sızıntısı", "Ecotec yağ eksiltme", "ABS Beyin arızası"],
+        "fabrika_geri_cagirmalari": ["2006 Tavan Kilidi Revizyonu"],
+        "agir_bakim_tahmini": "Triger seti ve devirdaim 10.000 km sonra değişmeli.",
+        "obd_ve_mekanik_tavsiyeler": ["Tavan mekanizmasını yağlayın", "Yağ seviyesini haftalık kontrol edin"],
+        "yapay_zeka_mekanik_yorumu": "Bu 1.8 litrelik ünite, kasanın hafifliğiyle birleşince keyifli bir performans sunar. Ancak yüksek kilometrede yağ bakımları aksatılmamalıdır."
+    },
+    "piyasa_analizi": {
+        "ikinci_el_likiditesi": "Düşük (Koleksiyonluk/Niş)",
+        "fiyat_degerlendirmesi": "Emsallerine göre makul."
+    },
+    "satici_notu_ozeti": "Bakımlı, tavanı sorunsuz çalışan, masrafsız bir hobi aracı.",
+    "kapsamli_ekspertiz_raporu": "Araç genel kondisyon olarak iyi durumda. Belirtilen boya ve değişen haricinde şaseler orijinal."
+}
+
 def build_prompt(user_text: Optional[str] = None):
     # Senin hazırladığın profesyonel prompt
     base_prompt = """
@@ -63,6 +101,15 @@ async def arac_analiz_et(
     foto_aciklama: Optional[UploadFile] = File(None),
     manuel_text: Optional[str] = Form(None)
 ):
+    
+
+    # EĞER DEBUG MODU AÇIKSA DİREKT STATİK VERİYİ DÖN
+    if DEBUG_MODE:
+        import asyncio
+        await asyncio.sleep(3) # Uygulamadaki loading ekranını görmek için yapay bekleme
+        return MOCK_DATA
+    
+    
     try:
         # Prompt'u oluştur
         final_prompt = build_prompt(manuel_text)
