@@ -11,7 +11,6 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 def analiz_yap(foto1: Image.Image, foto2: Image.Image):
     # En hızlı ve güncel modelimizi seçiyoruz
     model = genai.GenerativeModel('gemini-2.5-flash')
-    
     prompt = """
     Sen uzman bir oto ekspertiz, kıdemli bir otomotiv mühendisi ve veri analizi asistanısın. 
     Ek'te verilen iki ekran görüntüsü bir ikinci el araç ilanına aittir (Biri detayları, diğeri açıklamayı içerir).
