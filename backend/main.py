@@ -5,18 +5,41 @@ from PIL import Image
 import io
 import json
 import os
+from datetime import datetime
 from dotenv import load_dotenv
+import asyncio
+# Veritabanı için gerekli kütüphaneler
+from sqlalchemy import create_engine, Column, Integer, String, JSON, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-# .env dosyasındaki şifreyi güvenli bir şekilde çekiyoruz
 load_dotenv()
 
-app = FastAPI(title="AUTO-SCAN PRO API", version="1.2")
+# --- VERİTABANI YAPILANDIRMASI ---
+# .env dosyanda şu formatta olmalı: DATABASE_URL=postgresql://kullanici:sifre@localhost:5432/oto_ekspertiz_db
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Gemini API Key yapılandırması
-#GOOGLE_API_KEY = "YOUR_GEMINI_API_KEY"
-#genai.configure(api_key=GOOGLE_API_KEY)
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-2.5-flash')
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Veritabanı Tablo Modeli
+class AracAnaliz(Base):
+    __tablename__ = "analizler"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True) # autoincrement açık olmalı
+    marka = Column(String)
+    model = Column(String)
+    yil = Column(String)
+    sonuc_json = Column(JSON) 
+    olusturulma_tarihi = Column(DateTime, default=datetime.utcnow)
+
+# Tabloları oluştur
+Base.metadata.create_all(bind=engine)
+# ---------------------------------
+
+app = FastAPI(title="AUTO-SCAN PRO API", version="1.3")
+
 
 
 DEBUG_MODE = True 
@@ -46,54 +69,42 @@ MOCK_DATA = {
         "fabrika_geri_cagirmalari": ["2006 Tavan Kilidi Revizyonu"],
         "agir_bakim_tahmini": "Triger seti ve devirdaim 10.000 km sonra değişmeli.",
         "obd_ve_mekanik_tavsiyeler": ["Tavan mekanizmasını yağlayın", "Yağ seviyesini haftalık kontrol edin"],
-        "yapay_zeka_mekanik_yorumu": "Bu 1.8 litrelik ünite, kasanın hafifliğiyle birleşince keyifli bir performans sunar. Ancak yüksek kilometrede yağ bakımları aksatılmamalıdır."
+        "yapay_zeka_mekanik_yorumu": "Bu 1.8 litrelik ünite, kasanın hafifliğiyle birleşince keyifli bir performans sunar."
     },
     "piyasa_analizi": {
-        "ikinci_el_likiditesi": "Düşük (Koleksiyonluk/Niş)",
+        "ikinci_el_likiditesi": "Düşük",
         "fiyat_degerlendirmesi": "Emsallerine göre makul."
     },
-    "satici_notu_ozeti": "Bakımlı, tavanı sorunsuz çalışan, masrafsız bir hobi aracı.",
-    "kapsamli_ekspertiz_raporu": "Araç genel kondisyon olarak iyi durumda. Belirtilen boya ve değişen haricinde şaseler orijinal."
+    "satici_notu_ozeti": "Bakımlı, hobi aracı.",
+    "kapsamli_ekspertiz_raporu": "Araç genel kondisyon olarak iyi durumda."
 }
 
 def build_prompt(user_text: Optional[str] = None):
-    # Senin hazırladığın profesyonel prompt
     base_prompt = """
     Sen uzman bir oto ekspertiz, kıdemli bir otomotiv mühendisi ve veri analizi asistanısın. 
-    Ek'te verilen iki ekran görüntüsü bir ikinci el araç ilanına aittir (Biri detayları, diğeri açıklamayı içerir).
+    Ek'te verilen iki ekran görüntüsü bir ikinci el araç ilanına aittir.
     """
-    
     if user_text:
-        base_prompt += f"\nNOT: Kullanıcı görsellere ek olarak şu bilgileri de iletti: '{user_text}'. Analiz yaparken bu bilgiyi de mutlaka harmanla.\n"
+        base_prompt += f"\nNOT: Kullanıcı şu bilgileri iletti: '{user_text}'.\n"
 
     base_prompt += """
-    GÖREV 1: Görsellerdeki ve varsa kullanıcı notundaki verileri dikkatlice ayıkla.
-    GÖREV 2: Aracın marka, model, yıl, paket ve motor gücü bilgilerini kullanarak kendi otomotiv bilgi bankanı tara. Bu spesifik kombinasyonun şase kodunu, motorunu, şanzımanını, kronik sorunlarını ve ağır bakım periyotlarını tespit et.
-    GÖREV 3: Elde ettiğin tüm verileri harmanlayarak BİREBİR aşağıdaki JSON formatında, hiçbir ek metin olmadan yanıt ver. Bilinmeyen veya görselde olmayan veriler için "Belirtilmemiş" yaz. Sayısal verileri rakam olarak dön.
+    GÖREV 1: Verileri ayıkla.
+    GÖREV 2: Bilgi bankanı tara (kronik sorunlar, şanzıman vb.).
+    GÖREV 3: BİREBİR aşağıdaki JSON formatında yanıt ver.
     
     İstenen JSON Yapısı:
     {
-      "arac_bilgileri": {
-        "marka": "", "model": "", "kasa_kodu": "", "yil": "", "yakit_tipi": "", 
-        "vites": "", "kilometre": "", "motor_gucu": "", "agir_hasarli": "", "fiyat": ""
-      },
-      "ekspertiz_durumu": {
-        "boyali_parcalar": [], "degisen_parcalar": [], "hasar_kaydi": ""
-      },
-      "teknik_ve_kronik_bilgiler": {
-        "motor_kodu": "", "sanziman_tipi": "", "kronik_sorunlar": [],
-        "fabrika_geri_cagirmalari": [], "agir_bakim_tahmini": "",
-        "obd_ve_mekanik_tavsiyeler": [],
-        "yapay_zeka_mekanik_yorumu": ""
-      },
-      "piyasa_analizi": {
-        "ikinci_el_likiditesi": "", "fiyat_degerlendirmesi": ""
-      },
+      "arac_bilgileri": {"marka": "", "model": "", "kasa_kodu": "", "yil": "", "yakit_tipi": "", "vites": "", "kilometre": "", "motor_gucu": "", "agir_hasarli": "", "fiyat": ""},
+      "ekspertiz_durumu": {"boyali_parcalar": [], "degisen_parcalar": [], "hasar_kaydi": ""},
+      "teknik_ve_kronik_bilgiler": {"motor_kodu": "", "sanziman_tipi": "", "kronik_sorunlar": [], "fabrika_geri_cagirmalari": [], "agir_bakim_tahmini": "", "obd_ve_mekanik_tavsiyeler": [], "yapay_zeka_mekanik_yorumu": ""},
+      "piyasa_analizi": {"ikinci_el_likiditesi": "", "fiyat_degerlendirmesi": ""},
       "satici_notu_ozeti": "",
       "kapsamli_ekspertiz_raporu": ""
     }
     """
     return base_prompt
+
+# ... önceki kodlar ...
 
 @app.post("/analiz")
 async def arac_analiz_et(
@@ -101,41 +112,92 @@ async def arac_analiz_et(
     foto_aciklama: Optional[UploadFile] = File(None),
     manuel_text: Optional[str] = Form(None)
 ):
-    
+    # DİKKAT: Gemini'ye gitmek için bunu False yapmalısın!
+    DEBUG_MODE = True 
 
-    # EĞER DEBUG MODU AÇIKSA DİREKT STATİK VERİYİ DÖN
+    final_sonuc = {}
+
     if DEBUG_MODE:
-        import asyncio
-        await asyncio.sleep(3) # Uygulamadaki loading ekranını görmek için yapay bekleme
-        return MOCK_DATA
-    
-    
-    try:
-        # Prompt'u oluştur
-        final_prompt = build_prompt(manuel_text)
-        icerik_listesi = [final_prompt]
-        
-        # Fotoğrafları oku ve listeye ekle
-        if foto_detay:
-            d_bytes = await foto_detay.read()
-            icerik_listesi.append(Image.open(io.BytesIO(d_bytes)))
-        
-        if foto_aciklama:
-            a_bytes = await foto_aciklama.read()
-            icerik_listesi.append(Image.open(io.BytesIO(a_bytes)))
+        await asyncio.sleep(2)
+        final_sonuc = MOCK_DATA
+        print("🛠️ DEBUG MODU: Mock veri dönülüyor, Gemini'ye gidilmedi.")
+    else:
 
-        # Gemini'ye gönder (generation_config ile JSON çıktısını zorlayalım)
-        response = model.generate_content(
-            icerik_listesi,
-            generation_config={"response_mime_type": "application/json"}
+        import google.generativeai as genai # Gerektiğinde import et
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+
+        try:
+            print("🌟 GEMINI ANALİZİ BAŞLADI...")
+            final_prompt = build_prompt(manuel_text)
+            icerik_listesi = [final_prompt]
+            
+            if foto_detay:
+                icerik_listesi.append(Image.open(io.BytesIO(await foto_detay.read())))
+            if foto_aciklama:
+                icerik_listesi.append(Image.open(io.BytesIO(await foto_aciklama.read())))
+
+            # Gemini 2.0 Flash kullanımı
+            response = model.generate_content(
+                icerik_listesi,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            final_sonuc = json.loads(response.text)
+            print("✅ GEMINI YANITI ALINDI.")
+        except Exception as e:
+            print(f"❌ GEMINI HATASI: {e}")
+            raise HTTPException(status_code=500, detail=f"Gemini Hatası: {str(e)}")
+
+    # --- VERİTABANI KAYIT ---
+    db = SessionLocal()
+    try:
+        print("💾 SUPABASE'E KAYIT DENENİYOR...")
+        arac = final_sonuc.get("arac_bilgileri", {})
+        
+        yeni_analiz = AracAnaliz(
+            marka=str(arac.get("marka", "Bilinmiyor")),
+            model=str(arac.get("model", "Bilinmiyor")),
+            yil=str(arac.get("yil", "0")),
+            sonuc_json=final_sonuc 
         )
         
-        # JSON'u parse et ve dön
-        return json.loads(response.text)
-        
+        db.add(yeni_analiz)
+        db.commit() # Veriyi kalıcı hale getirir
+        db.refresh(yeni_analiz)
+        print(f"🚀 KAYIT BAŞARILI! ID: {yeni_analiz.id}")
     except Exception as e:
-        print(f"Hata detayı: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        db.rollback()
+        print(f"🚨 DB KAYIT HATASI: {e}")
+        # Not: DB hatası olsa bile kullanıcıya analizi dönmek isteyebilirsin
+    finally:
+        db.close()
+
+    return final_sonuc
+
+
+@app.get("/gecmis")
+async def gecmis_analizleri_getir():
+    db = SessionLocal()
+    try:
+        analizler = db.query(AracAnaliz).order_by(AracAnaliz.olusturulma_tarihi.desc()).limit(5).all()
+        
+        liste = []
+        for a in analizler:
+            liste.append({
+                "id": a.id,
+                "marka": a.marka,
+                "model": a.model,
+                "yil": a.yil,
+                "tarih": a.olusturulma_tarihi.strftime("%d.%m.%Y %H:%M"),
+                "sonuc": a.sonuc_json  # <--- Burayı 'detay'dan 'sonuc'a çevirdik
+            })
+        return liste
+    except Exception as e:
+        print(f"Geçmiş çekme hatası: {e}")
+        return []
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     import uvicorn
