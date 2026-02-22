@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from ai_engine import analiz_yap
 from PIL import Image
 import io
+#semih was here
 
 # API'mizi ayağa kaldırıyoruz
 app = FastAPI(title="Profesyonel Oto AI API", version="1.0")
