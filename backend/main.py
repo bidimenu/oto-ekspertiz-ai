@@ -12,6 +12,8 @@ import asyncio
 from sqlalchemy import create_engine, Column, Integer, String, JSON, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from fastapi.middleware.cors import CORSMiddleware
+
 
 load_dotenv()
 
@@ -40,7 +42,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="AUTO-SCAN PRO API", version="1.3")
 
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DEBUG_MODE = True 
 
