@@ -19,7 +19,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 
-DEBUG_MODE = True 
+DEBUG_MODE = False 
 
 MOCK_DATA = {
     "arac_bilgileri": {
