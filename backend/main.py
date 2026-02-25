@@ -50,7 +50,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DEBUG_MODE = True 
+DEBUG_MODE = False 
 
 MOCK_DATA = {
     "arac_bilgileri": {
@@ -121,7 +121,7 @@ async def arac_analiz_et(
     manuel_text: Optional[str] = Form(None)
 ):
     # DİKKAT: Gemini'ye gitmek için bunu False yapmalısın!
-    DEBUG_MODE = True 
+    DEBUG_MODE = False 
 
     final_sonuc = {}
 
