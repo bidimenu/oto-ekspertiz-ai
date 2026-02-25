@@ -108,6 +108,11 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   }
 
   Future analizGonder() async {
+
+
+    
+
+    
     if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")),
@@ -117,11 +122,13 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
 
     setState(() { yukleniyor = true; });
     _startLoadingMessages();
+    
 
     try {
       //var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/analiz'));
       
-      var request = http.MultipartRequest('POST', Uri.parse('https://oto-ekspertiz-api.onrender.com/analiz'));
+      //var request = http.MultipartRequest('POST', Uri.parse('https://oto-ekspertiz-api.onrender.com/analiz'));
+      var request = http.MultipartRequest('POST', Uri.parse('$baseApiUrl/analiz'));
       if (fotoDetay != null) request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
       if (fotoAciklama != null) request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
       request.fields['manuel_text'] = _manuelGirisController.text;
