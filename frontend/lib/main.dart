@@ -129,6 +129,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       
       //var request = http.MultipartRequest('POST', Uri.parse('https://oto-ekspertiz-api.onrender.com/analiz'));
       var request = http.MultipartRequest('POST', Uri.parse('$baseApiUrl/analiz'));
+      print("Hedef URL: ${baseApiUrl}/analiz");
       if (fotoDetay != null) request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
       if (fotoAciklama != null) request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
       request.fields['manuel_text'] = _manuelGirisController.text;
