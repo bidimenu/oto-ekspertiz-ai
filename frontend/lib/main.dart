@@ -107,50 +107,67 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     });
   }
 
-  Future analizGonder() async {
-
-
-    
-
-    
-    if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")),
-      );
-      return;
-    }
-
-    setState(() { yukleniyor = true; });
-    _startLoadingMessages();
-    
-
-    try {
-      //var request = http.MultipartRequest('POST', Uri.parse('http://localhost:8000/analiz'));
-      
-      //var request = http.MultipartRequest('POST', Uri.parse('https://oto-ekspertiz-api.onrender.com/analiz'));
-      var request = http.MultipartRequest('POST', Uri.parse('$baseApiUrl/analiz'));
-      print("Hedef URL: ${baseApiUrl}/analiz");
-      if (fotoDetay != null) request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
-      if (fotoAciklama != null) request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
-      request.fields['manuel_text'] = _manuelGirisController.text;
-
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> sonuc = json.decode(responseData);
-        if (!mounted) return;
-        
-        // Analiz bittikten sonra listeyi yenilemek için sayfayı push edip dönünce setState yapıyoruz
-        await Navigator.push(context, MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc)));
-        setState(() {}); // Geri gelince listeyi yenile
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
-    } finally {
-      setState(() { yukleniyor = false; });
-      _mesajTimer?.cancel();
-    }
+Future analizGonder() async {
+  if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
+    return;
   }
+
+  setState(() { yukleniyor = true; });
+  _startLoadingMessages();
+
+  try {
+    print("--- ANALİZ BAŞLADI ---");
+    final targetUrl = Uri.parse('$baseApiUrl/analiz');
+    print("Hedef URL: $targetUrl");
+
+    var request = http.MultipartRequest('POST', targetUrl);
+    
+    // Dosya ekleme kontrolü
+    if (fotoDetay != null) {
+      print("FotoDetay ekleniyor: ${fotoDetay!.path}");
+      request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
+    }
+    if (fotoAciklama != null) {
+      print("FotoAciklama ekleniyor: ${fotoAciklama!.path}");
+      request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
+    }
+    
+    request.fields['manuel_text'] = _manuelGirisController.text;
+    print("Manuel Text: ${request.fields['manuel_text']}");
+
+    print("İstek gönderiliyor (Bekleyiniz)...");
+    // Timeout ekleyerek bağlantının kopmasını engelleyelim
+    var streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+    print("Sunucu Cevap Verdi! Durum Kodu: ${streamedResponse.statusCode}");
+
+    var responseData = await streamedResponse.stream.bytesToString();
+    print("Sunucudan Gelen Ham Veri: $responseData");
+
+    if (streamedResponse.statusCode == 200) {
+      final Map<String, dynamic> sonuc = json.decode(responseData);
+      if (!mounted) return;
+      
+      print("Sayfaya yönlendiriliyor...");
+      await Navigator.push(context, MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc)));
+      setState(() {}); 
+    } else {
+      print("Hata Oluştu. Durum Kodu: ${streamedResponse.statusCode} - Mesaj: $responseData");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
+    }
+  } on TimeoutException catch (_) {
+    print("HATA: Sunucu zaman aşımına uğradı (Timeout).");
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.")));
+  } catch (e) {
+    print("FLUTTER KRİTİK HATA: $e");
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
+  } finally {
+    setState(() { yukleniyor = false; });
+    _mesajTimer?.cancel();
+    print("--- ANALİZ SÜRECİ BİTTİ ---");
+  }
+}
+  
 
   @override
   Widget build(BuildContext context) {
