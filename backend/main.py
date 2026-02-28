@@ -133,6 +133,10 @@ async def arac_analiz_et(
 
         import google.generativeai as genai # Gerektiğinde import et
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+        api_key = os.getenv("GEMINI_API_KEY")
+        print(f"Sistem Başlatıldı. Kullanılan API Key (ilk 4): {api_key[:4]}***")
+        genai.configure(api_key=api_key)
         #model = genai.GenerativeModel('gemini-1.5-flash')
         model = genai.GenerativeModel("gemini-2.5-flash")
 
