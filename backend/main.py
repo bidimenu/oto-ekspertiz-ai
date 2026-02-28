@@ -138,7 +138,7 @@ async def arac_analiz_et(
         print(f"Sistem Başlatıldı. Kullanılan API Key (ilk 4): {api_key[:4]}***")
         genai.configure(api_key=api_key)
         #model = genai.GenerativeModel('gemini-1.5-flash')
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
 
         try:
             print("🌟 GEMINI ANALİZİ BAŞLADI...")

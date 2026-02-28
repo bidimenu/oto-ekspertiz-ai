@@ -97,15 +97,30 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     super.dispose();
   }
 
-  Future fotoSec(bool detayMi) async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+Future fotoSec(bool detayMi) async {
+  // maxWidth ve maxHeight ekleyerek çözünürlüğü "makul" bir seviyeye çekiyoruz.
+  // Gemini'nin OCR yapması için 1024-1200px genişlik fazlasıyla yeterli.
+  final pickedFile = await picker.pickImage(
+    source: ImageSource.gallery, 
+    maxWidth: 1200,      // Çözünürlüğü optimize et
+    maxHeight: 1200,     // Çözünürlüğü optimize et
+    imageQuality: 65     // Kaliteyi %65'e çekmek boyutu ciddi oranda düşürür, okunabilirliği bozmaz
+  );
+
+  if (pickedFile != null) {
+    // Seçilen dosyanın boyutunu merak edersen debug console'dan bakabilirsin
+    final bytes = await pickedFile.readAsBytes();
+    print("Optimize edilmiş fotoğraf boyutu: ${bytes.length / 1024} KB");
+
     setState(() {
-      if (pickedFile != null) {
-        if (detayMi) fotoDetay = File(pickedFile.path);
-        else fotoAciklama = File(pickedFile.path);
+      if (detayMi) {
+        fotoDetay = File(pickedFile.path);
+      } else {
+        fotoAciklama = File(pickedFile.path);
       }
     });
   }
+}
 
   
   Future analizGonder() async {
