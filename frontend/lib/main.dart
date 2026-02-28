@@ -77,7 +77,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   // --- YENİ: VERİTABANINDAN GEÇMİŞİ ÇEKEN FONKSİYON ---
   Future<List<GecmisAnaliz>> getGecmisAnalizler() async {
     try {
-      //final response = await http.get(Uri.parse('http://localhost:8000/gecmis'));
+    
       final response = await http.get(Uri.parse('$baseApiUrl/gecmis'));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
@@ -107,6 +107,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     });
   }
 
+  
 Future analizGonder() async {
   if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
@@ -137,20 +138,27 @@ Future analizGonder() async {
     print("Manuel Text: ${request.fields['manuel_text']}");
 
     print("İstek gönderiliyor (Bekleyiniz)...");
-    // Timeout ekleyerek bağlantının kopmasını engelleyelim
     var streamedResponse = await request.send().timeout(const Duration(seconds: 60));
     print("Sunucu Cevap Verdi! Durum Kodu: ${streamedResponse.statusCode}");
 
     var responseData = await streamedResponse.stream.bytesToString();
-    print("Sunucudan Gelen Ham Veri: $responseData");
-
+    
     if (streamedResponse.statusCode == 200) {
       final Map<String, dynamic> sonuc = json.decode(responseData);
       if (!mounted) return;
       
       print("Sayfaya yönlendiriliyor...");
       await Navigator.push(context, MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc)));
-      setState(() {}); 
+
+      // --- KRİTİK DÜZELTME: HAFIZA TEMİZLİĞİ ---
+      // Rapor sayfasından geri dönüldüğünde veya analiz bittiğinde 
+      // eski fotoğrafları ve metni temizliyoruz ki bir sonraki analiz karışmasın.
+      setState(() {
+        fotoDetay = null;
+        fotoAciklama = null;
+        _manuelGirisController.clear(); 
+      });
+
     } else {
       print("Hata Oluştu. Durum Kodu: ${streamedResponse.statusCode} - Mesaj: $responseData");
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
