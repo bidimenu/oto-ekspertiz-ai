@@ -108,7 +108,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   }
 
   
-Future analizGonder() async {
+  Future analizGonder() async {
   if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
     return;
@@ -120,27 +120,21 @@ Future analizGonder() async {
   try {
     print("--- ANALİZ BAŞLADI ---");
     final targetUrl = Uri.parse('$baseApiUrl/analiz');
-    print("Hedef URL: $targetUrl");
-
+    
     var request = http.MultipartRequest('POST', targetUrl);
     
-    // Dosya ekleme kontrolü
     if (fotoDetay != null) {
-      print("FotoDetay ekleniyor: ${fotoDetay!.path}");
       request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
     }
     if (fotoAciklama != null) {
-      print("FotoAciklama ekleniyor: ${fotoAciklama!.path}");
       request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
     }
     
     request.fields['manuel_text'] = _manuelGirisController.text;
-    print("Manuel Text: ${request.fields['manuel_text']}");
 
     print("İstek gönderiliyor (Bekleyiniz)...");
     var streamedResponse = await request.send().timeout(const Duration(seconds: 60));
-    print("Sunucu Cevap Verdi! Durum Kodu: ${streamedResponse.statusCode}");
-
+    
     var responseData = await streamedResponse.stream.bytesToString();
     
     if (streamedResponse.statusCode == 200) {
@@ -148,11 +142,18 @@ Future analizGonder() async {
       if (!mounted) return;
       
       print("Sayfaya yönlendiriliyor...");
-      await Navigator.push(context, MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc)));
 
-      // --- KRİTİK DÜZELTME: HAFIZA TEMİZLİĞİ ---
-      // Rapor sayfasından geri dönüldüğünde veya analiz bittiğinde 
-      // eski fotoğrafları ve metni temizliyoruz ki bir sonraki analiz karışmasın.
+      // --- KRİTİK DEĞİŞİKLİK: AWAIT KULLANIMI ---
+      // Navigator.push önüne 'await' ekledik. 
+      // Kod burada durur, kullanıcı rapor sayfasından geri gelene kadar aşağı geçmez.
+      await Navigator.push(
+        context, 
+        MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc))
+      );
+
+      // --- KULLANICI GERİ GELDİĞİNDE TEMİZLİK ---
+      // Rapor sayfası kapandığında (pop) burası çalışır. 
+      // Artık veriler güvenle temizlenebilir ve ana ekran listesi yenilenir.
       setState(() {
         fotoDetay = null;
         fotoAciklama = null;
@@ -160,22 +161,20 @@ Future analizGonder() async {
       });
 
     } else {
-      print("Hata Oluştu. Durum Kodu: ${streamedResponse.statusCode} - Mesaj: $responseData");
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
     }
   } on TimeoutException catch (_) {
-    print("HATA: Sunucu zaman aşımına uğradı (Timeout).");
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.")));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı.")));
   } catch (e) {
-    print("FLUTTER KRİTİK HATA: $e");
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
   } finally {
-    setState(() { yukleniyor = false; });
-    _mesajTimer?.cancel();
+    if (mounted) {
+      setState(() { yukleniyor = false; });
+      _mesajTimer?.cancel();
+    }
     print("--- ANALİZ SÜRECİ BİTTİ ---");
   }
 }
-  
 
   @override
   Widget build(BuildContext context) {
