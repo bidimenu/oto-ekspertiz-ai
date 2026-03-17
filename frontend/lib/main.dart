@@ -7,9 +7,8 @@ import 'dart:async';
 import 'package:desktop_window/desktop_window.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'rapor_sayfasi.dart';
-//test
-//final String baseApiUrl = "https://oto-ekspertiz-api.onrender.com";
 
+//final String baseApiUrl = "https://oto-ekspertiz-api.onrender.com";
 final String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
 
 void main() async {
@@ -52,8 +51,12 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   final picker = ImagePicker();
   final TextEditingController _manuelGirisController = TextEditingController();
 
+  // --- 🚀 YENİ: PROGRESS BAR DEĞİŞKENLERİ ---
+  double ilerlemeYuzdesi = 0.0;
+  Timer? _progressTimer;
   int mesajIndex = 0;
   Timer? _mesajTimer;
+  
   final List<String> analizMesajlari = [
     "Görüntüler işleniyor...",
     "Ekspertiz detayları ayıklanıyor...",
@@ -63,9 +66,14 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     "Final raporu hazırlanıyor...",
   ];
 
-  void _startLoadingMessages() {
+  // --- 🚀 YENİ: 35 SANİYELİK YÜKLEME MOTORU ---
+  void _startLoadingProcess() {
+    ilerlemeYuzdesi = 0.0;
     mesajIndex = 0;
-    _mesajTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+    const int hedefSureSaniye = 35; 
+
+    // 1. Mesajları 5 saniyede bir değiştir
+    _mesajTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted && yukleniyor) {
         setState(() {
           mesajIndex = (mesajIndex + 1) % analizMesajlari.length;
@@ -74,12 +82,26 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
         timer.cancel();
       }
     });
+
+    // 2. Progress Bar'ı saniyede 10 kere (100ms) akıcı şekilde doldur
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (mounted && yukleniyor) {
+        setState(() {
+          // 35 saniyede 1.0 (Yani %100) olması için gereken matematik
+          double artisMiktari = 0.1 / hedefSureSaniye;
+          if (ilerlemeYuzdesi < 0.95) { 
+            // Cevap gelene kadar %95'te bekletir, birden bitmesin diye
+            ilerlemeYuzdesi += artisMiktari;
+          }
+        });
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
-  // --- YENİ: VERİTABANINDAN GEÇMİŞİ ÇEKEN FONKSİYON ---
   Future<List<GecmisAnaliz>> getGecmisAnalizler() async {
     try {
-    
       final response = await http.get(Uri.parse('$baseApiUrl/gecmis'));
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(utf8.decode(response.bodyBytes));
@@ -95,103 +117,110 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   @override
   void dispose() {
     _mesajTimer?.cancel();
+    _progressTimer?.cancel(); // Yeni timer temizliği
     _manuelGirisController.dispose();
     super.dispose();
   }
 
-Future fotoSec(bool detayMi) async {
-  // maxWidth ve maxHeight ekleyerek çözünürlüğü "makul" bir seviyeye çekiyoruz.
-  // Gemini'nin OCR yapması için 1024-1200px genişlik fazlasıyla yeterli.
-  final pickedFile = await picker.pickImage(
-    source: ImageSource.gallery, 
-    maxWidth: 1200,      // Çözünürlüğü optimize et
-    maxHeight: 1200,     // Çözünürlüğü optimize et
-    imageQuality: 65     // Kaliteyi %65'e çekmek boyutu ciddi oranda düşürür, okunabilirliği bozmaz
-  );
+  Future fotoSec(bool detayMi) async {
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery, 
+      maxWidth: 1200,      
+      maxHeight: 1200,     
+      imageQuality: 65     
+    );
 
-  if (pickedFile != null) {
-    // Seçilen dosyanın boyutunu merak edersen debug console'dan bakabilirsin
-    final bytes = await pickedFile.readAsBytes();
-    print("Optimize edilmiş fotoğraf boyutu: ${bytes.length / 1024} KB");
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      print("Optimize edilmiş fotoğraf boyutu: ${bytes.length / 1024} KB");
 
-    setState(() {
-      if (detayMi) {
-        fotoDetay = File(pickedFile.path);
-      } else {
-        fotoAciklama = File(pickedFile.path);
-      }
-    });
-  }
-}
-
-  
-  Future analizGonder() async {
-  if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
-    return;
-  }
-
-  setState(() { yukleniyor = true; });
-  _startLoadingMessages();
-
-  try {
-    print("--- ANALİZ BAŞLADI ---");
-    final targetUrl = Uri.parse('$baseApiUrl/analiz');
-    
-    var request = http.MultipartRequest('POST', targetUrl);
-    
-    if (fotoDetay != null) {
-      request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
-    }
-    if (fotoAciklama != null) {
-      request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
-    }
-    
-    request.fields['manuel_text'] = _manuelGirisController.text;
-
-    print("İstek gönderiliyor (Bekleyiniz)...");
-    var streamedResponse = await request.send().timeout(const Duration(seconds: 60));
-    
-    var responseData = await streamedResponse.stream.bytesToString();
-    
-    if (streamedResponse.statusCode == 200) {
-      final Map<String, dynamic> sonuc = json.decode(responseData);
-      if (!mounted) return;
-      
-      print("Sayfaya yönlendiriliyor...");
-
-      // --- KRİTİK DEĞİŞİKLİK: AWAIT KULLANIMI ---
-      // Navigator.push önüne 'await' ekledik. 
-      // Kod burada durur, kullanıcı rapor sayfasından geri gelene kadar aşağı geçmez.
-      await Navigator.push(
-        context, 
-        MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc))
-      );
-
-      // --- KULLANICI GERİ GELDİĞİNDE TEMİZLİK ---
-      // Rapor sayfası kapandığında (pop) burası çalışır. 
-      // Artık veriler güvenle temizlenebilir ve ana ekran listesi yenilenir.
       setState(() {
-        fotoDetay = null;
-        fotoAciklama = null;
-        _manuelGirisController.clear(); 
+        if (detayMi) {
+          fotoDetay = File(pickedFile.path);
+        } else {
+          fotoAciklama = File(pickedFile.path);
+        }
       });
-
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
     }
-  } on TimeoutException catch (_) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı.")));
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
-  } finally {
-    if (mounted) {
-      setState(() { yukleniyor = false; });
-      _mesajTimer?.cancel();
-    }
-    print("--- ANALİZ SÜRECİ BİTTİ ---");
   }
-}
+
+  Future analizGonder() async {
+    if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
+      return;
+    }
+
+    setState(() { yukleniyor = true; });
+    _startLoadingProcess(); // YENİ FONKSİYONU ÇAĞIRIYORUZ
+
+    try {
+      print("--- ANALİZ BAŞLADI ---");
+      final String cleanUrl = baseApiUrl.trim();
+      final targetUrl = Uri.parse('$cleanUrl/analiz');
+      print("Hedef URL: $targetUrl");
+      
+      var request = http.MultipartRequest('POST', targetUrl);
+      
+      if (fotoDetay != null) {
+        request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
+      }
+      if (fotoAciklama != null) {
+        request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
+      }
+      
+      request.fields['manuel_text'] = _manuelGirisController.text;
+
+      print("İstek gönderiliyor... (Timeout: 90sn)");
+      var streamedResponse = await request.send().timeout(const Duration(seconds: 90));
+      
+      print("Cevap kodu alındı: ${streamedResponse.statusCode}");
+      var responseData = await streamedResponse.stream.bytesToString();
+      
+      if (streamedResponse.statusCode == 200) {
+        
+        // --- 🚀 CEVAP GELDİĞİNDE BARI %100 YAP ---
+        if (mounted) {
+          setState(() { ilerlemeYuzdesi = 1.0; });
+        }
+        
+        final Map<String, dynamic> sonuc = json.decode(responseData);
+        print("Analiz Başarılı. Rapor sayfasına geçiliyor...");
+
+        // Ufak bir bekleme ekledik ki kullanıcı %100'ü 1 saniye görsün
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (!mounted) return;
+        
+        await Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc))
+        );
+
+        setState(() {
+          fotoDetay = null;
+          fotoAciklama = null;
+          _manuelGirisController.clear(); 
+        });
+
+      } else {
+        print("Sunucu Hatası: $responseData");
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
+      }
+    } on TimeoutException catch (e) {
+      print("ZAMAN AŞIMI HATASI: $e");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı. Backend çok uzun sürdü.")));
+    } catch (e) {
+      print("BEKLENMEDİK HATA: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
+    } finally {
+      if (mounted) {
+        setState(() { yukleniyor = false; });
+        _mesajTimer?.cancel();
+        _progressTimer?.cancel(); // Timer'ı kapatmayı unutmuyoruz
+      }
+      print("--- ANALİZ SÜRECİ BİTTİ ---");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -228,15 +257,13 @@ Future fotoSec(bool detayMi) async {
               const SizedBox(height: 45),
               const Text("LAST SCANS", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 15),
-              _buildLastScans(), // ARTIK DİNAMİK!
+              _buildLastScans(), 
             ],
           ),
         ),
       ),
     );
   }
-
-  // --- UI BİLEŞENLERİ (TASARIM AYNI KALDI) ---
 
   Widget _buildHeader() {
     return Column(
@@ -310,19 +337,47 @@ Future fotoSec(bool detayMi) async {
     );
   }
 
+  // --- 🚀 YENİ TASARLANMIŞ BUTON VE PROGRESS BAR ALANI ---
   Widget _buildMainButton() {
     return Center(
       child: yukleniyor 
         ? Column(
             children: [
-              const CircularProgressIndicator(color: Colors.cyan),
-              const SizedBox(height: 15),
+              Container(
+                width: 280,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: ilerlemeYuzdesi,
+                        minHeight: 10, // Barı biraz kalınlaştırdık
+                        backgroundColor: Colors.cyan.withOpacity(0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          ilerlemeYuzdesi == 1.0 ? Colors.green : Colors.cyan
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      ilerlemeYuzdesi == 1.0 ? "%100 TAMAMLANDI!" : "%${(ilerlemeYuzdesi * 100).toInt()}",
+                      style: TextStyle(
+                        fontSize: 14, 
+                        fontWeight: FontWeight.bold, 
+                        color: ilerlemeYuzdesi == 1.0 ? Colors.green : Colors.cyan
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 500),
                 child: Text(
-                  analizMesajlari[mesajIndex],
-                  key: ValueKey<String>(analizMesajlari[mesajIndex]),
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.cyan[700]),
+                  ilerlemeYuzdesi == 1.0 ? "Rapor oluşturuluyor..." : analizMesajlari[mesajIndex],
+                  key: ValueKey<String>(ilerlemeYuzdesi == 1.0 ? "rapor" : analizMesajlari[mesajIndex]),
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.cyan[800]),
                 ),
               ),
             ],
@@ -345,7 +400,6 @@ Future fotoSec(bool detayMi) async {
     );
   }
 
-  // --- DİNAMİK LAST SCANS LİSTESİ ---
   Widget _buildLastScans() {
     return FutureBuilder<List<GecmisAnaliz>>(
       future: getGecmisAnalizler(),
@@ -405,7 +459,6 @@ Future fotoSec(bool detayMi) async {
   }
 }
 
-// --- DATA MODEL ---
 class GecmisAnaliz {
   final int id;
   final String marka;
