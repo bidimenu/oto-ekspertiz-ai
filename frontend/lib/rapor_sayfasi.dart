@@ -61,7 +61,7 @@ class RaporSayfasi extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
         title: Text(
-          "ANALİZ RAPORU", 
+          "EKSPER RAPORU", 
           style: GoogleFonts.rajdhani(
             color: Colors.black87, 
             fontWeight: FontWeight.bold, 
@@ -164,7 +164,7 @@ class RaporSayfasi extends StatelessWidget {
             const SizedBox(height: 20),
             // ... (Geri kalan kodların aynı şekilde devam ediyor)
             _eliteBilgiKarti(
-              baslik: "Yapay Zeka Mekanik Analizi",
+              baslik: "Ustasının Mekanik Analizi",
               icon: Icons.auto_awesome,
               accentColor: Colors.blueAccent,
               child: Column(
@@ -212,7 +212,7 @@ class RaporSayfasi extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             _eliteBilgiKarti(
-              baslik: "Piyasa ve Likidite",
+              baslik: "Piyasa ve Fiyat",
               icon: Icons.insights,
               accentColor: const Color(0xFF00D2D3),
               child: Column(
