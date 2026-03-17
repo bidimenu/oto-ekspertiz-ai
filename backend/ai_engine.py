@@ -41,7 +41,7 @@ def analiz_yap(foto1: Image.Image, foto2: Image.Image):
       "ikinci_el_likiditesi": "", 
       "fiyat_degerlendirmesi": "Buraya kesinlikle aracın tahmini piyasa satış fiyatını yaz (Örn: 850.000 TL) ve ilandaki fiyatla kıyasla."
     },
-    "guven_skoru": "guven_skoru": "Aracın genel kondisyonuna göre KESİNLİKLE '%85 alınır' veya '%40 riskli' formatında bir skor ve çok kısa bir gerekçe yaz.",
+    "guven_skoru":"Aracın genel kondisyonuna göre KESİNLİKLE '%85 alınır' veya '%40 riskli' formatında bir skor ve çok kısa bir gerekçe yaz.",
     "satici_notu_ozeti": "",
     "kapsamli_ekspertiz_raporu": ""
   }
