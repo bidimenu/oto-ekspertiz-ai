@@ -8,20 +8,21 @@ class RaporSayfasi extends StatelessWidget {
 
   const RaporSayfasi({super.key, required this.veri});
 
-  // --- PAYLAŞIM FONKSİYONU GÜNCELLENDİ ---
   void _raporuPaylas(BuildContext context) {
     try {
       final arac = veri['arac_bilgileri'] ?? {};
       final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
       final piyasa = veri['piyasa_analizi'] ?? {};
+      final guven = veri['guven_skoru'] ?? '-';
 
-      // WhatsApp için profesyonel metin şablonu
       String paylasimMetni = """
-🚗 *AUTO-SCAN PRO EKSPERTİZ RAPORU* 🚗
+🚗 *OTO ANALİZ PRO RAPORU* 🚗
 ---------------------------------------
 📌 *Araç:* ${arac['marka'] ?? ''} ${arac['model'] ?? ''} (${arac['yil'] ?? '-'})
 💰 *Fiyat:* ${_formatSayi(arac['fiyat'])} TL
 🛣️ *KM:* ${_formatSayi(arac['kilometre'])} km
+
+🎯 *Yapay Zeka Güven Skoru:* $guven
 
 🛠️ *Yapay Zeka Mekanik Yorumu:*
 "${teknik['yapay_zeka_mekanik_yorumu'] ?? 'Analiz mevcut değil.'}"
@@ -30,7 +31,7 @@ class RaporSayfasi extends StatelessWidget {
 • Likidite: ${piyasa['ikinci_el_likiditesi'] ?? '-'}
 • Fiyat Durumu: ${piyasa['fiyat_degerlendirmesi'] ?? '-'}
 
-💡 _Bu rapor AUTO-SCAN PRO AI tarafından oluşturulmuştur._
+💡 _Bu rapor OTO ANALİZ PRO AI tarafından oluşturulmuştur._
 """;
 
       Share.share(paylasimMetni);
@@ -49,13 +50,25 @@ class RaporSayfasi extends StatelessWidget {
     return temizSayi.replaceAllMapped(reg, (Match m) => '${m[1]}.');
   }
 
+  // --- 🚀 YENİ: METNİN İÇİNDEN SADECE RAKAMI ÇEKEN ZEKİ FONKSİYON ---
+  int _parseSkor(dynamic skorVerisi) {
+    if (skorVerisi == null) return 0;
+    String str = skorVerisi.toString();
+    final RegExp regExp = RegExp(r'\d+'); // Sadece rakamları bulur
+    final match = regExp.firstMatch(str);
+    if (match != null) {
+      return int.tryParse(match.group(0)!) ?? 0;
+    }
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Verileri lokal değişkenlere ata (Senin mevcut yapın)
     final arac = veri['arac_bilgileri'] ?? {};
     final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
     final ekspertiz = veri['ekspertiz_durumu'] ?? {};
     final piyasa = veri['piyasa_analizi'] ?? {};
+    final hamGuvenSkoru = veri['guven_skoru'] ?? 'Hesaplanamadı';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
@@ -74,7 +87,6 @@ class RaporSayfasi extends StatelessWidget {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
-          // PAYLAŞ BUTONU
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black87),
             onPressed: () => _raporuPaylas(context),
@@ -95,11 +107,7 @@ class RaporSayfasi extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04), 
-                    blurRadius: 30, 
-                    offset: const Offset(0, 15),
-                  )
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 30, offset: const Offset(0, 15))
                 ],
               ),
               child: Column(
@@ -108,10 +116,7 @@ class RaporSayfasi extends StatelessWidget {
                   Text(
                     "${arac['marka'] ?? ''} ${arac['model'] ?? ''}".toUpperCase(),
                     style: GoogleFonts.rajdhani(
-                      fontSize: 22, 
-                      fontWeight: FontWeight.bold, 
-                      height: 1.1,
-                      color: Colors.black87,
+                      fontSize: 22, fontWeight: FontWeight.bold, height: 1.1, color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -120,11 +125,7 @@ class RaporSayfasi extends StatelessWidget {
                     children: [
                       Text(
                         arac['kasa_kodu'] ?? "Genel Analiz",
-                        style: const TextStyle(
-                          color: Color(0xFF00D2D3), 
-                          fontWeight: FontWeight.bold, 
-                          fontSize: 16,
-                        ),
+                        style: const TextStyle(color: Color(0xFF00D2D3), fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -134,11 +135,7 @@ class RaporSayfasi extends StatelessWidget {
                         ),
                         child: Text(
                           "${_formatSayi(arac['fiyat'])} TL",
-                          style: const TextStyle(
-                            fontSize: 16, 
-                            fontWeight: FontWeight.w900, 
-                            color: Color(0xFF00B2B2),
-                          ),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF00B2B2)),
                         ),
                       ),
                     ],
@@ -162,7 +159,13 @@ class RaporSayfasi extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            // ... (Geri kalan kodların aynı şekilde devam ediyor)
+
+            // --- 🚀 YENİ: AI GÜVEN SKORU KARTI ---
+            _buildGuvenSkoruKarti(hamGuvenSkoru),
+
+            const SizedBox(height: 20),
+            
+            // 3. MEKANİK VE KRONİK BİLGİLER
             _eliteBilgiKarti(
               baslik: "Ustasının Mekanik Analizi",
               icon: Icons.auto_awesome,
@@ -181,12 +184,7 @@ class RaporSayfasi extends StatelessWidget {
                     ),
                     child: Text(
                       teknik['yapay_zeka_mekanik_yorumu'] ?? "Analiz tamamlanıyor...",
-                      style: const TextStyle(
-                        fontSize: 14, 
-                        height: 1.5, 
-                        fontStyle: FontStyle.italic, 
-                        color: Colors.black87,
-                      ),
+                      style: const TextStyle(fontSize: 14, height: 1.5, fontStyle: FontStyle.italic, color: Colors.black87),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -211,6 +209,8 @@ class RaporSayfasi extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+
+            // 4. PİYASA ANALİZİ
             _eliteBilgiKarti(
               baslik: "Piyasa ve Fiyat",
               icon: Icons.insights,
@@ -229,7 +229,101 @@ class RaporSayfasi extends StatelessWidget {
     );
   }
 
-  // Yardımcı Widget'lar (Private metodlar olarak aşağıda tutmak temiz koddur)
+// --- 🚀 GÜNCEL: TAŞMA (OVERFLOW) HATASI GİDERİLMİŞ KART ---
+  Widget _buildGuvenSkoruKarti(String hamVeri) {
+    int skor = _parseSkor(hamVeri);
+    Color skorRengi = Colors.redAccent;
+    String durumMetni = "Yüksek Riskli";
+    IconData durumIkonu = Icons.dangerous_outlined;
+
+    // Eğer veri "Hesaplanamadı" ise gri ve nötr yapalım ki 0% kırmızısı korkutmasın
+    if (hamVeri == 'Hesaplanamadı') {
+      skorRengi = Colors.grey;
+      durumMetni = "Veri Bekleniyor";
+      durumIkonu = Icons.hourglass_empty;
+    } else if (skor >= 75) {
+      skorRengi = Colors.green;
+      durumMetni = "Gözü Kapalı Alınır";
+      durumIkonu = Icons.verified_user_outlined;
+    } else if (skor >= 50) {
+      skorRengi = Colors.orange;
+      durumMetni = "Dikkatli İncelenmeli";
+      durumIkonu = Icons.warning_amber_rounded;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20, offset: const Offset(0, 10))],
+      ),
+      child: Column(
+        children: [
+          Text("YAPAY ZEKA GÜVEN SKORU", style: GoogleFonts.rajdhani(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[600])),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Kadran (Gauge) Tasarımı
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CircularProgressIndicator(
+                      value: skor / 100,
+                      strokeWidth: 8,
+                      backgroundColor: Colors.grey[200],
+                      color: skorRengi,
+                    ),
+                    Center(
+                      child: Text(
+                        "%$skor",
+                        style: GoogleFonts.rajdhani(fontSize: 24, fontWeight: FontWeight.bold, color: skorRengi),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 25),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(durumIkonu, color: skorRengi, size: 20),
+                        const SizedBox(width: 6),
+                        // 🚀 ÇÖZÜM: Yazıyı Expanded içine alarak taşmayı önledik!
+                        Expanded(
+                          child: Text(
+                            durumMetni, 
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: skorRengi),
+                            maxLines: 2, // Gerekirse 2 satıra inebilir
+                            overflow: TextOverflow.ellipsis, // Sığmazsa ... koyar
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      hamVeri, 
+                      style: const TextStyle(fontSize: 10, color: Colors.black54, height: 1.4),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Yardımcı Widget'lar
   Widget _ozetHucre(String etiket, String deger) {
     return Column(
       children: [

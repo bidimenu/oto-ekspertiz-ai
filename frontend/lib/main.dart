@@ -8,7 +8,6 @@ import 'package:desktop_window/desktop_window.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'rapor_sayfasi.dart';
 
-//final String baseApiUrl = "https://oto-ekspertiz-api.onrender.com";
 const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
 
 void main() async {
@@ -45,19 +44,18 @@ class AnalizEkrani extends StatefulWidget {
 }
 
 class _AnalizEkraniState extends State<AnalizEkrani> {
+  // --- 🚀 SADELEŞTİRME: SADECE TEK FOTOĞRAF DEĞİŞKENİ VAR ---
   File? fotoDetay;
-  File? fotoAciklama;
+  
   bool yukleniyor = false;
   final picker = ImagePicker();
   final TextEditingController _manuelGirisController = TextEditingController();
 
-  // --- 🚀 PROGRESS BAR DEĞİŞKENLERİ ---
   double ilerlemeYuzdesi = 0.0;
   Timer? _progressTimer;
   int mesajIndex = 0;
   Timer? _mesajTimer;
   
-  // --- 🚀 MİMARİ DÜZELTME: GEÇMİŞ VERİSİ İÇİN STATE ---
   late Future<List<GecmisAnaliz>> _gecmisVerisi;
   
   final List<String> analizMesajlari = [
@@ -69,7 +67,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     "Final raporu hazırlanıyor...",
   ];
 
-  // --- 🚀 MİMARİ DÜZELTME: SADECE UYGULAMA AÇILIRKEN 1 KERE ÇALIŞIR ---
   @override
   void initState() {
     super.initState();
@@ -127,7 +124,8 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     super.dispose();
   }
 
-  Future fotoSec(bool detayMi) async {
+  // --- 🚀 SADELEŞTİRME: PARAMETREYE GEREK KALMADI ---
+  Future fotoSec() async {
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery, 
       maxWidth: 1200,      
@@ -140,17 +138,14 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       print("Optimize edilmiş fotoğraf boyutu: ${bytes.length / 1024} KB");
 
       setState(() {
-        if (detayMi) {
-          fotoDetay = File(pickedFile.path);
-        } else {
-          fotoAciklama = File(pickedFile.path);
-        }
+        fotoDetay = File(pickedFile.path); 
       });
     }
   }
 
   Future analizGonder() async {
-    if (fotoDetay == null && fotoAciklama == null && _manuelGirisController.text.trim().isEmpty) {
+    // --- 🚀 SADELEŞTİRME: KONTROL GÜNCELLENDİ ---
+    if (fotoDetay == null && _manuelGirisController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
       return;
     }
@@ -168,9 +163,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       
       if (fotoDetay != null) {
         request.files.add(await http.MultipartFile.fromPath('foto_detay', fotoDetay!.path));
-      }
-      if (fotoAciklama != null) {
-        request.files.add(await http.MultipartFile.fromPath('foto_aciklama', fotoAciklama!.path));
       }
       
       request.fields['manuel_text'] = _manuelGirisController.text;
@@ -199,12 +191,11 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
           MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc))
         );
 
-        // --- 🚀 MİMARİ DÜZELTME: KULLANICI GERİ GELDİĞİNDE LİSTEYİ TAZELE ---
+        // --- 🚀 SADELEŞTİRME: İKİNCİ FOTO TEMİZLİĞİ SİLİNDİ ---
         setState(() {
           fotoDetay = null;
-          fotoAciklama = null;
           _manuelGirisController.clear(); 
-          _gecmisVerisi = getGecmisAnalizler(); // Yeni analiz eklendi, listeyi güncelle!
+          _gecmisVerisi = getGecmisAnalizler(); 
         });
 
       } else {
@@ -238,21 +229,16 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
             children: [
               _buildHeader(),
               const SizedBox(height: 35),
+              
+              // --- 🚀 SADELEŞTİRME: TEK YÜKLEME KARTI ---
               _buildUploadCard(
-                title: "İLAN AÇIKLAMASI",
-                subtitle: "Ekran görüntüsü veya dosya",
-                icon: Icons.description_outlined,
+                title: "ARAÇ BİLGİSİ YÜKLE",
+                subtitle: "İlan veya araç bilgi ekran görüntüsü",
+                icon: Icons.document_scanner_outlined,
                 file: fotoDetay,
-                onTap: () => fotoSec(true),
+                onTap: () => fotoSec(),
               ),
-              const SizedBox(height: 16),
-              _buildUploadCard(
-                title: "EKSPERTİZ BİLGİSİ",
-                subtitle: "Araç fotoğrafları veya rapor",
-                icon: Icons.assignment_outlined,
-                file: fotoAciklama,
-                onTap: () => fotoSec(false),
-              ),
+              
               const SizedBox(height: 25),
               const Center(child: Text("VEYA MANUEL BİLGİ GİRİŞİ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2))),
               const SizedBox(height: 15),
@@ -260,7 +246,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
               const SizedBox(height: 25),
               _buildMainButton(),
               const SizedBox(height: 45),
-              const Text("LAST SCANS", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const Text("SON ANALİZLER", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 15),
               _buildLastScans(), 
             ],
@@ -277,11 +263,11 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("AUTO-SCAN PRO", style: GoogleFonts.rajdhani(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            Text("YAPAY ZEKA EKSPERTİZ", style: GoogleFonts.rajdhani(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1)),
             const Icon(Icons.circle, color: Colors.greenAccent, size: 12),
           ],
         ),
-        const Text("AI-Powered Vehicle Intelligence", style: TextStyle(color: Colors.grey, fontSize: 13)),
+        const Text("Yapay Zeka Destekli Oto Ekspertiz", style: TextStyle(color: Colors.grey, fontSize: 13)),
       ],
     );
   }
@@ -397,14 +383,13 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                 boxShadow: [BoxShadow(color: const Color(0xFF00D2D3).withOpacity(0.4), blurRadius: 25, offset: const Offset(0, 8))],
               ),
               child: const Center(
-                child: Text("TAM ANALİZ BAŞLAT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                child: Text("ANALİZİ BAŞLAT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
               ),
             ),
           ),
     );
   }
 
-  // --- 🚀 MİMARİ DÜZELTME: FUTUREBUILDER ARTIK FONKSİYONU DEĞİL STATE'İ DİNLİYOR ---
   Widget _buildLastScans() {
     return FutureBuilder<List<GecmisAnaliz>>(
       future: _gecmisVerisi, 
