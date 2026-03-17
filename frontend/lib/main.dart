@@ -333,7 +333,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
         maxLines: 4,
         style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
-          hintText: "Örn: BMW 320d 2012 100bin km sag camurluk boya kaput lokal boya...",
+          hintText: "Örn: BMW 320d 2012 100bin km sag camurluk boya ve kaput lokal boya...",
           hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
           contentPadding: const EdgeInsets.all(20),
           border: InputBorder.none,

@@ -13,7 +13,7 @@ def analiz_yap(foto1: Image.Image, foto2: Image.Image):
     model = genai.GenerativeModel('gemini-2.5-flash')
     
     prompt = """
-    Sen uzman bir oto ekspertiz, kıdemli bir otomotiv mühendisi ve veri analizi asistanısın. 
+    Sen uzman bir oto ekspertiz, kıdemli bir otomotiv mühendisi motor ve mekanik ve elektrik ustasısın. 
     Ek'te verilen iki ekran görüntüsü bir ikinci el araç ilanına aittir (Biri detayları, diğeri değişen boya durumunu içerir).
 
 
