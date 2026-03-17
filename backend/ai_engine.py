@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # .env dosyasındaki şifreyi güvenli bir şekilde çekiyoruz
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
+#test
 def analiz_yap(foto1: Image.Image, foto2: Image.Image):
     # En hızlı ve güncel modelimizi seçiyoruz
     model = genai.GenerativeModel('gemini-2.5-flash')
