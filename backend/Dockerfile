@@ -20,4 +20,3 @@ EXPOSE 8080
 
 # Uygulamayı başlat (FastAPI/Flask ne kullanıyorsan ona göre güncelle)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
-EOF
