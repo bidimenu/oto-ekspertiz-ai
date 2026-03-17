@@ -9,7 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'rapor_sayfasi.dart';
 
 //final String baseApiUrl = "https://oto-ekspertiz-api.onrender.com";
-final String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
+const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,11 +51,14 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   final picker = ImagePicker();
   final TextEditingController _manuelGirisController = TextEditingController();
 
-  // --- 🚀 YENİ: PROGRESS BAR DEĞİŞKENLERİ ---
+  // --- 🚀 PROGRESS BAR DEĞİŞKENLERİ ---
   double ilerlemeYuzdesi = 0.0;
   Timer? _progressTimer;
   int mesajIndex = 0;
   Timer? _mesajTimer;
+  
+  // --- 🚀 MİMARİ DÜZELTME: GEÇMİŞ VERİSİ İÇİN STATE ---
+  late Future<List<GecmisAnaliz>> _gecmisVerisi;
   
   final List<String> analizMesajlari = [
     "Görüntüler işleniyor...",
@@ -66,13 +69,18 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     "Final raporu hazırlanıyor...",
   ];
 
-  // --- 🚀 YENİ: 35 SANİYELİK YÜKLEME MOTORU ---
+  // --- 🚀 MİMARİ DÜZELTME: SADECE UYGULAMA AÇILIRKEN 1 KERE ÇALIŞIR ---
+  @override
+  void initState() {
+    super.initState();
+    _gecmisVerisi = getGecmisAnalizler(); 
+  }
+
   void _startLoadingProcess() {
     ilerlemeYuzdesi = 0.0;
     mesajIndex = 0;
     const int hedefSureSaniye = 35; 
 
-    // 1. Mesajları 5 saniyede bir değiştir
     _mesajTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted && yukleniyor) {
         setState(() {
@@ -83,14 +91,11 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       }
     });
 
-    // 2. Progress Bar'ı saniyede 10 kere (100ms) akıcı şekilde doldur
     _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (mounted && yukleniyor) {
         setState(() {
-          // 35 saniyede 1.0 (Yani %100) olması için gereken matematik
           double artisMiktari = 0.1 / hedefSureSaniye;
           if (ilerlemeYuzdesi < 0.95) { 
-            // Cevap gelene kadar %95'te bekletir, birden bitmesin diye
             ilerlemeYuzdesi += artisMiktari;
           }
         });
@@ -117,7 +122,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   @override
   void dispose() {
     _mesajTimer?.cancel();
-    _progressTimer?.cancel(); // Yeni timer temizliği
+    _progressTimer?.cancel(); 
     _manuelGirisController.dispose();
     super.dispose();
   }
@@ -151,7 +156,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     }
 
     setState(() { yukleniyor = true; });
-    _startLoadingProcess(); // YENİ FONKSİYONU ÇAĞIRIYORUZ
+    _startLoadingProcess(); 
 
     try {
       print("--- ANALİZ BAŞLADI ---");
@@ -178,7 +183,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       
       if (streamedResponse.statusCode == 200) {
         
-        // --- 🚀 CEVAP GELDİĞİNDE BARI %100 YAP ---
         if (mounted) {
           setState(() { ilerlemeYuzdesi = 1.0; });
         }
@@ -186,7 +190,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
         final Map<String, dynamic> sonuc = json.decode(responseData);
         print("Analiz Başarılı. Rapor sayfasına geçiliyor...");
 
-        // Ufak bir bekleme ekledik ki kullanıcı %100'ü 1 saniye görsün
         await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
@@ -196,10 +199,12 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
           MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc))
         );
 
+        // --- 🚀 MİMARİ DÜZELTME: KULLANICI GERİ GELDİĞİNDE LİSTEYİ TAZELE ---
         setState(() {
           fotoDetay = null;
           fotoAciklama = null;
           _manuelGirisController.clear(); 
+          _gecmisVerisi = getGecmisAnalizler(); // Yeni analiz eklendi, listeyi güncelle!
         });
 
       } else {
@@ -216,7 +221,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       if (mounted) {
         setState(() { yukleniyor = false; });
         _mesajTimer?.cancel();
-        _progressTimer?.cancel(); // Timer'ı kapatmayı unutmuyoruz
+        _progressTimer?.cancel(); 
       }
       print("--- ANALİZ SÜRECİ BİTTİ ---");
     }
@@ -337,7 +342,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     );
   }
 
-  // --- 🚀 YENİ TASARLANMIŞ BUTON VE PROGRESS BAR ALANI ---
   Widget _buildMainButton() {
     return Center(
       child: yukleniyor 
@@ -352,7 +356,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
                         value: ilerlemeYuzdesi,
-                        minHeight: 10, // Barı biraz kalınlaştırdık
+                        minHeight: 10, 
                         backgroundColor: Colors.cyan.withOpacity(0.15),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           ilerlemeYuzdesi == 1.0 ? Colors.green : Colors.cyan
@@ -400,9 +404,10 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     );
   }
 
+  // --- 🚀 MİMARİ DÜZELTME: FUTUREBUILDER ARTIK FONKSİYONU DEĞİL STATE'İ DİNLİYOR ---
   Widget _buildLastScans() {
     return FutureBuilder<List<GecmisAnaliz>>(
-      future: getGecmisAnalizler(),
+      future: _gecmisVerisi, 
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(height: 110, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));

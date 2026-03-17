@@ -14,14 +14,14 @@ def analiz_yap(foto1: Image.Image, foto2: Image.Image):
     
     prompt = """
     Sen uzman bir oto ekspertiz, kıdemli bir otomotiv mühendisi ve veri analizi asistanısın. 
-    Ek'te verilen iki ekran görüntüsü bir ikinci el araç ilanına aittir (Biri detayları, diğeri açıklamayı içerir).
+    Ek'te verilen iki ekran görüntüsü bir ikinci el araç ilanına aittir (Biri detayları, diğeri değişen boya durumunu içerir).
 
 
     GÖREV 1: Görsellerdeki verileri dikkatlice ayıkla.
     GÖREV 2: Aracın marka, model, yıl, paket ve motor gücü bilgilerini kullanarak kendi otomotiv bilgi bankanı tara. Bu spesifik kombinasyonun şase kodunu, motorunu, şanzımanını, kronik sorunlarını ve ağır bakım periyotlarını tespit et.
     GÖREV 3: Elde ettiğin verilerle piyasa analizi yap. Aracın kondisyonuna, hasar geçmişine ve kilometresi gibi etkenlere göre KESİNLİKLE net bir tahmini satış fiyatı belirle (Örn: 850.000 TL). Ayrıca aracın genel durumunu değerlendirerek "%85 alınır" formatında bir güven skoru ver.
     GÖREV 4: Elde ettiğin tüm verileri harmanlayarak BİREBİR aşağıdaki JSON formatında, hiçbir ek metin veya kod bloğu olmadan yanıt ver. Bilinmeyen veya görselde olmayan veriler için "Belirtilmemiş" yaz.
-
+ 
   İstenen JSON Yapısı:
   {
     "arac_bilgileri": {
