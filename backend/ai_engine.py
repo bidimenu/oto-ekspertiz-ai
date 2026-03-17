@@ -24,7 +24,7 @@ def analiz_yap(foto1: Image.Image, foto2: Image.Image):
  
   İstenen JSON Yapısı:
 {
-  "guven_skoru": "Aracın genel kondisyonuna göre KESİNLİKLE '%85 alınır' veya '%40 riskli' formatında bir skor ve 1 cümlelik gerekçe yaz.",
+  "guven_skoru": "VERİ EKSİK OLSA BİLE eldeki verilere dayanarak (km, yaş, kronik sorunlar) KESİNLİKLE '%70 riskli' veya '%85 alınır' formatında bir skor üret. Bu alan ASLA boş kalmamalı.",
   "arac_bilgileri": {
     "marka": "",
     "model": "",
