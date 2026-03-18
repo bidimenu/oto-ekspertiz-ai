@@ -58,4 +58,16 @@ class KrediServisi {
       return false;
     }
   }
+
+
+  Future<void> krediSatinAlTest(int miktar) async {
+    final cihazId = await _getDeviceId();
+    final mevcutKredi = await bakiyeGetir();
+    
+    // Supabase'deki krediyi manuel artırıyoruz
+    await supabase
+        .from('kullanici_kredileri')
+        .update({'kredi_sayisi': mevcutKredi + miktar})
+        .eq('cihaz_id', cihazId);
+  }
 }

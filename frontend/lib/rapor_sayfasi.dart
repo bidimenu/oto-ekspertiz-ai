@@ -56,7 +56,7 @@ class RaporSayfasi extends StatelessWidget {
 
     final arac = veri['arac_bilgileri'] ?? {};
     final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
-    final ekspertiz = veri['ekspertiz_durumu'] ?? {};
+    //final ekspertiz = veri['ekspertiz_durumu'] ?? {};
     final piyasa = veri['piyasa_analizi'] ?? {};
 
     return Scaffold(
@@ -84,7 +84,7 @@ class RaporSayfasi extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           children: [
             // 1. ANA ARAÇ KARTI
@@ -125,7 +125,7 @@ class RaporSayfasi extends StatelessWidget {
                                 : "${_formatSayi(arac['fiyat'])} TL",
                             textAlign: TextAlign.right,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF00B2B2)),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF00B2B2)),
                           ),
                         ),
                       ),
@@ -142,10 +142,7 @@ class RaporSayfasi extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 30),
-                  EkspertizSema(
-                    boyali: ekspertiz['boyali_parcalar'] ?? [],
-                    degisen: ekspertiz['degisen_parcalar'] ?? [],
-                  ),
+         
                 ],
               ),
             ),
@@ -172,7 +169,7 @@ class RaporSayfasi extends StatelessWidget {
                     ),
                     child: Text(
                       teknik['yapay_zeka_mekanik_yorumu'] ?? "Analiz tamamlanıyor...",
-                      style: const TextStyle(fontSize: 14, height: 1.5, fontStyle: FontStyle.italic, color: Colors.black87),
+                      style: const TextStyle(fontSize: 14, height: 1.5,  color: Colors.black87),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -224,16 +221,20 @@ class RaporSayfasi extends StatelessWidget {
       ],
     );
   }
-
-  Widget _bilgiSatiri(String baslik, dynamic icerik) {
+Widget _bilgiSatiri(String baslik, dynamic icerik) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Alt başlık etiketi (Küçük ve gri kalması hiyerarşi için doğrudur)
           Text(baslik.toUpperCase(), style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
           const SizedBox(height: 6),
-          Text(icerik?.toString() ?? "-", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+          // 🚀 YENİ: Tam siyah (Colors.black) ve Kalın (FontWeight.bold) yapıldı. 
+          Text(
+            icerik?.toString() ?? "-", 
+            style: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold)
+          ),
         ],
       ),
     );
@@ -255,7 +256,9 @@ class RaporSayfasi extends StatelessWidget {
             children: [
               Icon(icon, size: 20, color: accentColor),
               const SizedBox(width: 10),
-              Expanded(child: Text(baslik, style: GoogleFonts.rajdhani(fontSize: 17, fontWeight: FontWeight.bold))),
+              // 🚀 DEĞİŞİM 2: Özel ve şekilli font (Rajdhani) kaldırıldı.
+              // Tüm uygulama ile aynı font ailesinde, temiz, kalın ama göz yormayan bir başlık formatına geçildi.
+              Expanded(child: Text(baslik, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87))),
             ],
           ),
           const SizedBox(height: 20),

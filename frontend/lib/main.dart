@@ -132,9 +132,22 @@ void _krediSatinAlModal() {
                 // RevenueCat 1 Kredi satın alma
               }),
               const SizedBox(height: 12),
-              _paketButonu("3 ANALİZ (POPÜLER)", "199 TL", () {
-                // RevenueCat 3 Kredi satın alma
-              }, highlight: true),
+              _paketButonu("3 ANALİZ (POPÜLER)", "199 TL", () async {
+              // 1. Ödeme yapılıyor hissi vermek için ekrana loading çıkarabilirsin
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ödeme işleniyor...")));
+              
+              // 2. 2 saniye sahte bekleme süresi (Sanki Apple/Google ile konuşuyormuş gibi)
+              await Future.delayed(const Duration(seconds: 2));
+              
+              // 3. Supabase veritabanına 3 kredi yaz
+              await _krediServisi.krediSatinAlTest(3);
+              
+              // 4. Arayüzü güncelle ve modalı kapat
+              await _krediGuncelle();
+              Navigator.pop(context); // Alt menüyü kapat
+              
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ 3 Kredi başarıyla yüklendi!")));
+          }, highlight: true),
               const SizedBox(height: 10), // En altta güvenli boşluk
             ],
           ),
@@ -142,6 +155,8 @@ void _krediSatinAlModal() {
       ),
     );
   }
+
+
 
 Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highlight = false}) {
     return GestureDetector(
