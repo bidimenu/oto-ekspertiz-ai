@@ -9,22 +9,31 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // 🚀 EKLENDİ
 import 'rapor_sayfasi.dart';
 import 'package:frontend/serviceses/kredi_servisi.dart'; // 🚀 EKLENDİ
+import 'splash_ekrani.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
+import 'odeme_servisi.dart'; // 🚀 Ödeme servisini buraya import ettik
 
 const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
 
 void main() async {
+  // 1. Flutter motorunun ve binding'lerin hazır olduğundan emin oluyoruz
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 🚀 SUPABASE BAŞLATMA
+  // 2. 🚀 SUPABASE BAŞLATMA
   await Supabase.initialize(
     url: 'https://xwiodyndbewwmpsvrtql.supabase.co', 
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3aW9keW5kYmV3d21wc3ZydHFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3ODY2ODYsImV4cCI6MjA4NzM2MjY4Nn0.x9FdxhKHydLyunfXYdT-xZuhNzGWhrzrpA4Xr6lOMRs',
   );
 
+  // 3. 🚀 REVENUECAT (ÖDEME) BAŞLATMA
+  // Uygulama açılmadan önce finansal altyapıyı hazır hale getiriyoruz
+  await OdemeServisi().initialize();
+
+  // 4. MASAÜSTÜ PENCERE AYARLARI (Windows testi için)
   if (Platform.isWindows) {
     await DesktopWindow.setWindowSize(const Size(450, 850));
     await DesktopWindow.setMinWindowSize(const Size(400, 800));
   }
+
   runApp(const OtoEkspertizApp());
 }
 
@@ -41,7 +50,8 @@ class OtoEkspertizApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(),
         scaffoldBackgroundColor: const Color(0xFFF5F5F7),
       ),
-      home: const AnalizEkrani(),
+      // 🚀 Uygulama artık profesyonel bir Splash Screen ile açılıyor
+      home: const SplashScreen(),
     );
   }
 }
