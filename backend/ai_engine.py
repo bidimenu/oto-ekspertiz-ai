@@ -52,10 +52,10 @@ def analiz_yap(foto1: Image.Image, foto2: Image.Image):
     "kronik_sorunlar": [],
     "agir_bakim_tahmini": "",
     "obd_ve_mekanik_tavsiyeler": [],
-    "yapay_zeka_mekanik_yorumu": "Bu motor ve şanzıman ikilisinin uyumu hakkında 2-3 cümlelik net uzman yorumu."
+    "yapay_zeka_mekanik_yorumu": "Bu motor ve şanzıman ikilisinin uyumu, performansı ve karakteri hakkında çok kısa, net bir uzman yorumu (2-3 cümle).."
   },
 
-  "kapsamli_ekspertiz_raporu": "Bu alanı 3-4 paragrafı geçmeyecek şekilde özetle."
+  "kapsamli_ekspertiz_raporu": "Bu alanı 2-3 paragrafı geçmeyecek şekilde özetle."
 }
     """
 

@@ -6,12 +6,21 @@ import 'dart:io';
 import 'dart:async';
 import 'package:desktop_window/desktop_window.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // 🚀 EKLENDİ
 import 'rapor_sayfasi.dart';
+import 'package:frontend/serviceses/kredi_servisi.dart'; // 🚀 EKLENDİ
 
 const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 🚀 SUPABASE BAŞLATMA
+  await Supabase.initialize(
+    url: 'https://xwiodyndbewwmpsvrtql.supabase.co', 
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3aW9keW5kYmV3d21wc3ZydHFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3ODY2ODYsImV4cCI6MjA4NzM2MjY4Nn0.x9FdxhKHydLyunfXYdT-xZuhNzGWhrzrpA4Xr6lOMRs',
+  );
+
   if (Platform.isWindows) {
     await DesktopWindow.setWindowSize(const Size(450, 850));
     await DesktopWindow.setMinWindowSize(const Size(400, 800));
@@ -44,17 +53,18 @@ class AnalizEkrani extends StatefulWidget {
 }
 
 class _AnalizEkraniState extends State<AnalizEkrani> {
-  // --- 🚀 SADELEŞTİRME: SADECE TEK FOTOĞRAF DEĞİŞKENİ VAR ---
   File? fotoDetay;
   
   bool yukleniyor = false;
   final picker = ImagePicker();
   final TextEditingController _manuelGirisController = TextEditingController();
+  final KrediServisi _krediServisi = KrediServisi(); // 🚀 SERVİS BAĞLANDI
 
   double ilerlemeYuzdesi = 0.0;
   Timer? _progressTimer;
   int mesajIndex = 0;
   Timer? _mesajTimer;
+  int mevcutKredi = 0; // 🚀 UI'da gösterilecek güncel bakiye
   
   late Future<List<GecmisAnaliz>> _gecmisVerisi;
   
@@ -71,6 +81,70 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   void initState() {
     super.initState();
     _gecmisVerisi = getGecmisAnalizler(); 
+    _krediGuncelle(); // 🚀 UYGULAMA AÇILDIĞINDA KREDİYİ ÇEK
+  }
+
+  // 🚀 KREDİYİ SUPABASE'DEN ÇEKİP UI'I GÜNCELLEYEN FONKSİYON
+  Future<void> _krediGuncelle() async {
+    final bakiye = await _krediServisi.bakiyeGetir();
+    if (mounted) {
+      setState(() {
+        mevcutKredi = bakiye;
+      });
+    }
+  }
+
+  // 🚀 KREDİ BİTTİĞİNDE ÇIKACAK ÖDEME (PAYWALL) EKRANI
+  void _krediSatinAlModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.bolt, size: 50, color: Colors.cyan),
+            const SizedBox(height: 15),
+            const Text("ANALİZ HAKKINIZ BİTTİ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            const Text("Detaylı yapay zeka analizine devam etmek için kredi paketlerinden birini seçin.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 25),
+            _paketButonu("1 ANALİZ HAKKI", "99 TL", () {
+              // RevenueCat 1 Kredi satın alma tetiklenecek
+            }),
+            const SizedBox(height: 12),
+            _paketButonu("3 ANALİZ HAKKI (AVANTAJLI)", "199 TL", () {
+              // RevenueCat 3 Kredi satın alma tetiklenecek
+            }, highlight: true),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highlight = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: highlight ? Colors.cyan : Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.cyan, width: 2),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(baslik, style: TextStyle(fontWeight: FontWeight.bold, color: highlight ? Colors.white : Colors.cyan)),
+            Text(fiyat, style: TextStyle(fontWeight: FontWeight.w900, color: highlight ? Colors.white : Colors.cyan)),
+          ],
+        ),
+      ),
+    );
   }
 
   void _startLoadingProcess() {
@@ -124,7 +198,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     super.dispose();
   }
 
-  // --- 🚀 SADELEŞTİRME: PARAMETREYE GEREK KALMADI ---
   Future fotoSec() async {
     final pickedFile = await picker.pickImage(
       source: ImageSource.gallery, 
@@ -144,12 +217,20 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   }
 
   Future analizGonder() async {
-    // --- 🚀 SADELEŞTİRME: KONTROL GÜNCELLENDİ ---
     if (fotoDetay == null && _manuelGirisController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
       return;
     }
 
+    // 🚀 ANALİZ ÖNCESİ KREDİ KİLİDİ
+    bool krediHarcanabilir = await _krediServisi.krediKullan();
+    if (!krediHarcanabilir) {
+      _krediSatinAlModal(); // Bakiye yoksa Paywall aç
+      return;
+    }
+
+    // Kredi başarılı harcandı, arayüzdeki sayıyı güncelle ve sürece başla
+    _krediGuncelle();
     setState(() { yukleniyor = true; });
     _startLoadingProcess(); 
 
@@ -157,7 +238,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       print("--- ANALİZ BAŞLADI ---");
       final String cleanUrl = baseApiUrl.trim();
       final targetUrl = Uri.parse('$cleanUrl/analiz');
-      print("Hedef URL: $targetUrl");
       
       var request = http.MultipartRequest('POST', targetUrl);
       
@@ -167,21 +247,15 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       
       request.fields['manuel_text'] = _manuelGirisController.text;
 
-      print("İstek gönderiliyor... (Timeout: 90sn)");
       var streamedResponse = await request.send().timeout(const Duration(seconds: 90));
-      
-      print("Cevap kodu alındı: ${streamedResponse.statusCode}");
       var responseData = await streamedResponse.stream.bytesToString();
       
       if (streamedResponse.statusCode == 200) {
-        
         if (mounted) {
           setState(() { ilerlemeYuzdesi = 1.0; });
         }
         
         final Map<String, dynamic> sonuc = json.decode(responseData);
-        print("Analiz Başarılı. Rapor sayfasına geçiliyor...");
-
         await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
@@ -191,7 +265,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
           MaterialPageRoute(builder: (context) => RaporSayfasi(veri: sonuc))
         );
 
-        // --- 🚀 SADELEŞTİRME: İKİNCİ FOTO TEMİZLİĞİ SİLİNDİ ---
         setState(() {
           fotoDetay = null;
           _manuelGirisController.clear(); 
@@ -199,14 +272,11 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
         });
 
       } else {
-        print("Sunucu Hatası: $responseData");
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
       }
     } on TimeoutException catch (e) {
-      print("ZAMAN AŞIMI HATASI: $e");
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı. Backend çok uzun sürdü.")));
     } catch (e) {
-      print("BEKLENMEDİK HATA: $e");
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
     } finally {
       if (mounted) {
@@ -214,7 +284,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
         _mesajTimer?.cancel();
         _progressTimer?.cancel(); 
       }
-      print("--- ANALİZ SÜRECİ BİTTİ ---");
     }
   }
 
@@ -227,10 +296,12 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              const SizedBox(height: 35),
+              _buildHeader(), // 🚀 TERTEMİZ BAŞLIK
+              const SizedBox(height: 25),
               
-              // --- 🚀 SADELEŞTİRME: TEK YÜKLEME KARTI ---
+              _buildCreditBanner(), // 🚀 YENİ: KREDİ CÜZDANI / BANNER
+              const SizedBox(height: 25),
+              
               _buildUploadCard(
                 title: "ARAÇ BİLGİSİ YÜKLE",
                 subtitle: "İlan veya araç bilgi ekran görüntüsü",
@@ -256,19 +327,73 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     );
   }
 
+  // 🚀 TERTEMİZ, SOLA YASLI BAŞLIK
   Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("YAPAY ZEKA EKSPERTİZ", style: GoogleFonts.rajdhani(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            const SizedBox(width: 8),
             const Icon(Icons.circle, color: Colors.greenAccent, size: 12),
           ],
         ),
-        const Text("Yapay Zeka Destekli Oto Ekspertiz", style: TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 4),
+        const Text("Yapay Zeka Destekli Oto Ekspertiz", style: TextStyle(color: Colors.grey, fontSize: 12)),
       ],
+    );
+  }
+
+  // 🚀 YENİ: CÜZDAN / KREDİ BANNER'I
+Widget _buildCreditBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 1. Dikey boşluk (vertical) 16'dan 12'ye kısıldı
+      decoration: BoxDecoration(
+        color: Colors.cyan.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16), // Köşeler biraz daha estetik hale getirildi
+        border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8), // 2. İkonun etrafındaki beyaz alan küçültüldü
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.cyan.withOpacity(0.2), blurRadius: 6)],
+                ),
+                child: const Icon(Icons.bolt, color: Colors.cyan, size: 16), // İkon boyutu 20'den 16'ya indi
+              ),
+              const SizedBox(width: 12), // 3. İkon ile metin arası mesafe daraltıldı
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Mevcut Bakiye", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), // Fontlar küçüldü
+                  Text("$mevcutKredi Analiz Kredisi", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.cyan)), // Fontlar küçüldü
+                ],
+              ),
+            ],
+          ),
+          // 4. "YÜKLE" butonu daha hap (pill) şeklinde ve küçük hale getirildi
+          GestureDetector(
+            onTap: _krediSatinAlModal, 
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF00D2D3), Color(0xFF00B2B2)]),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [BoxShadow(color: Colors.cyan.withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 2))],
+              ),
+              child: const Text("YÜKLE", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
