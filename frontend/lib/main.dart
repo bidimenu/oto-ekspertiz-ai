@@ -95,52 +95,78 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   }
 
   // 🚀 KREDİ BİTTİĞİNDE ÇIKACAK ÖDEME (PAYWALL) EKRANI
-  void _krediSatinAlModal() {
+void _krediSatinAlModal() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true, // 🚀 1. KRİTİK DEĞİŞİKLİK: Modal'in ekranın daha büyük bir kısmını kaplamasına izin verir
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.bolt, size: 50, color: Colors.cyan),
-            const SizedBox(height: 15),
-            const Text("ANALİZ HAKKINIZ BİTTİ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            const Text("Detaylı yapay zeka analizine devam etmek için kredi paketlerinden birini seçin.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 25),
-            _paketButonu("1 ANALİZ HAKKI", "99 TL", () {
-              // RevenueCat 1 Kredi satın alma tetiklenecek
-            }),
-            const SizedBox(height: 12),
-            _paketButonu("3 ANALİZ HAKKI (AVANTAJLI)", "199 TL", () {
-              // RevenueCat 3 Kredi satın alma tetiklenecek
-            }, highlight: true),
-            const SizedBox(height: 20),
-          ],
+        // 🚀 2. KRİTİK DEĞİŞİKLİK: Ekranın alt kısmına (klavye vs.) duyarlı padding
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView( // 🚀 3. KRİTİK DEĞİŞİKLİK: İçerik taşarsa kaydırma özelliği ekler
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30), // Padding'i daralttık (30'dan 24'e)
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // Sadece içeriği kadar büyü
+            children: [
+              // Üstte modalı kapatma/çekme çizgisi (UX Dokunuşu)
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+              ),
+              const Icon(Icons.bolt, size: 45, color: Colors.cyan), // İkon biraz küçültüldü
+              const SizedBox(height: 12),
+              const Text("KREDİ YÜKLE", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)), // Başlık kısaldı
+              const SizedBox(height: 8),
+              const Text(
+                "Yapay zeka analizine devam etmek için paket seçin.", 
+                textAlign: TextAlign.center, 
+                style: TextStyle(color: Colors.grey, fontSize: 13), // Açıklama fontu inceltildi
+              ),
+              const SizedBox(height: 25),
+              _paketButonu("1 ANALİZ HAKKI", "99 TL", () {
+                // RevenueCat 1 Kredi satın alma
+              }),
+              const SizedBox(height: 12),
+              _paketButonu("3 ANALİZ (POPÜLER)", "199 TL", () {
+                // RevenueCat 3 Kredi satın alma
+              }, highlight: true),
+              const SizedBox(height: 10), // En altta güvenli boşluk
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highlight = false}) {
+Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highlight = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), // Dikey boşluk (padding) küçültüldü (18'den 14'e)
         decoration: BoxDecoration(
           color: highlight ? Colors.cyan : Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.cyan, width: 2),
+          // Highlight ise hafif bir gölge ekleyelim (UX)
+          boxShadow: highlight ? [BoxShadow(color: Colors.cyan.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(baslik, style: TextStyle(fontWeight: FontWeight.bold, color: highlight ? Colors.white : Colors.cyan)),
-            Text(fiyat, style: TextStyle(fontWeight: FontWeight.w900, color: highlight ? Colors.white : Colors.cyan)),
+            Text(
+              baslik, 
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: highlight ? Colors.white : Colors.cyan) // Font boyutu ayarlandı
+            ),
+            Text(
+              fiyat, 
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: highlight ? Colors.white : Colors.cyan) // Font boyutu ayarlandı
+            ),
           ],
         ),
       ),
@@ -373,8 +399,8 @@ Widget _buildCreditBanner() {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Mevcut Bakiye", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)), // Fontlar küçüldü
-                  Text("$mevcutKredi Analiz Kredisi", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.cyan)), // Fontlar küçüldü
+                  const Text("Mevcut Bakiye", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)), // Fontlar küçüldü
+                  Text("$mevcutKredi Analiz Kredisi", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.cyan)), // Fontlar küçüldü
                 ],
               ),
             ],
