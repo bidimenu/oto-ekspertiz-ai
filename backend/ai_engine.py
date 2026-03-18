@@ -36,8 +36,8 @@ def analiz_yap(foto1: Image.Image, foto2: Image.Image):
     "fiyat": "SADECE rakam yaz."
   },
   "piyasa_analizi": {
-    "ikinci_el_likiditesi": "Piyasadaki satış hızını (Örn: 'Peynir ekmek gibi satılır' veya 'Niş alıcı bekler') yorumla.",
-    "fiyat_degerlendirmesi": "Tahmini piyasa değerini yaz ve ilandaki fiyatla kıyasla (Örn: 'Piyasası 900k, bu araç fırsat/pahalı')."
+    "ikinci_el_likiditesi": "Piyasadaki satış hızını MAKSİMUM 1-2 CÜMLE ile ÇOK KISA VE NET yaz (Örn: 'Hızlı satılır, piyasası canlıdır.' veya 'Niş araçtır, alıcısını bekler.'). Kesinlikle uzun açıklama yapma.",
+    "fiyat_degerlendirmesi": "Tahmini piyasa değerini ve fiyat yorumunu MAKSİMUM 1-2 CÜMLE ile NET yaz (Örn: 'Piyasası 11.500.000 TL bandındadır, ilandaki fiyat makul/yüksek.'). Asla paragraf yazma."
   },
   "ekspertiz_durumu": {
     "boyali_parcalar": [],

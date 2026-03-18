@@ -9,7 +9,7 @@ class RaporSayfasi extends StatelessWidget {
 
   const RaporSayfasi({super.key, required this.veri});
 
-  // --- 🚀 PAYLAŞIM FONKSİYONU (YENİ VERİLER EKLENDİ) ---
+  // --- 🚀 PAYLAŞIM FONKSİYONU ---
   void _raporuPaylas(BuildContext context) {
     try {
       final arac = veri['arac_bilgileri'] ?? {};
@@ -80,7 +80,7 @@ class RaporSayfasi extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           children: [
-            // 1. ANA ARAÇ KARTI (Kasa Kodu ve Fiyat Sola Yaslı)
+            // 1. ANA ARAÇ KARTI
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -100,7 +100,6 @@ class RaporSayfasi extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      // 🏗️ YENİ: Kasa Kodu (F30, MK7 vb.)
                       Text(
                         arac['kasa_kodu'] ?? "Genel Analiz",
                         style: const TextStyle(color: Color(0xFF00D2D3), fontWeight: FontWeight.bold, fontSize: 16),
@@ -138,7 +137,7 @@ class RaporSayfasi extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 2. MEKANİK VE KRONİK BİLGİLER (Usta Modu)
+            // 2. MEKANİK VE KRONİK BİLGİLER (Yeni Motor/Şanzıman Görünümü)
             _eliteBilgiKarti(
               baslik: "Ustasının Mekanik Analizi",
               icon: Icons.auto_awesome,
@@ -146,8 +145,15 @@ class RaporSayfasi extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🏗️ YENİ: Motor Kodu ve Şanzıman Detayı
-                  _bilgiSatiri("Motor Kodu / Şanzıman", "${teknik['motor_kodu'] ?? '-'} / ${teknik['sanziman_tipi'] ?? '-'}"),
+                  // 🚀 YENİ: Motor ve Şanzıman Yan Yana (Bento stilinin şıklığı)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _bilgiSatiri("Motor Kodu", teknik['motor_kodu'])),
+                      const SizedBox(width: 15),
+                      Expanded(child: _bilgiSatiri("Şanzıman", teknik['sanziman_tipi'])),
+                    ],
+                  ),
                   
                   Container(
                     width: double.infinity,
@@ -185,19 +191,22 @@ class RaporSayfasi extends StatelessWidget {
             const SizedBox(height: 20),
 
             // 3. PİYASA ANALİZİ
+            // 3. PİYASA ANALİZİ
             _eliteBilgiKarti(
               baslik: "Piyasa ve Fiyat",
               icon: Icons.insights,
               accentColor: const Color(0xFF00D2D3),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, // Sola yaslı durması için
                 children: [
-                  _bilgiSatiri("Satış Hızı (Likidite)", piyasa['ikinci_el_likiditesi']),
-                  _bilgiSatiri("Fiyat Değerlendirmesi", piyasa['fiyat_degerlendirmesi']),
+                  // 🚀 YENİ: Alt alta, ferah ve okunaklı
+                  _bilgiSatiri("Satış Hızı", piyasa['ikinci_el_likiditesi']),
+                  _bilgiSatiri("Fiyat Durumu", piyasa['fiyat_degerlendirmesi']),
                 ],
               ),
             ),
 
-            // 4. ÖZET RAPOR (Alt Kısım)
+            // 4. ÖZET RAPOR
             const SizedBox(height: 20),
             _eliteBilgiKarti(
               baslik: "Eksper Özeti", 
