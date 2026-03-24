@@ -14,11 +14,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from fastapi.middleware.cors import CORSMiddleware
 
-
 load_dotenv()
 
 # --- VERİTABANI YAPILANDIRMASI ---
-# .env dosyanda şu formatta olmalı: DATABASE_URL=postgresql://kullanici:sifre@localhost:5432/oto_ekspertiz_db
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
@@ -29,7 +27,7 @@ Base = declarative_base()
 class AracAnaliz(Base):
     __tablename__ = "analizler"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True) # autoincrement açık olmalı
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     marka = Column(String)
     model = Column(String)
     yil = Column(String)
@@ -40,7 +38,7 @@ class AracAnaliz(Base):
 Base.metadata.create_all(bind=engine)
 # ---------------------------------
 
-app = FastAPI(title="AUTO-SCAN PRO API", version="1.3")
+app = FastAPI(title="AUTO-SCAN PRO API", version="1.4")
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,8 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DEBUG_MODE = False 
-
+# 🛠️ MOCK VERİ GÜNCELLENDİ (Uzun özet silindi, rozet uyumlu hale geldi)
 MOCK_DATA = {
     "arac_bilgileri": {
         "marka": "Opel",
@@ -77,14 +74,13 @@ MOCK_DATA = {
         "fabrika_geri_cagirmalari": ["2006 Tavan Kilidi Revizyonu"],
         "agir_bakim_tahmini": "Triger seti ve devirdaim 10.000 km sonra değişmeli.",
         "obd_ve_mekanik_tavsiyeler": ["Tavan mekanizmasını yağlayın", "Yağ seviyesini haftalık kontrol edin"],
-        "yapay_zeka_mekanik_yorumu": "Bu 1.8 litrelik ünite, kasanın hafifliğiyle birleşince keyifli bir performans sunar."
+        "yapay_zeka_mekanik_yorumu": "Kronik ABS beyni arızasına dikkat, temizse 1.8 motor kasa hafifliğinden dolayı çok keyif verir."
     },
     "piyasa_analizi": {
-        "ikinci_el_likiditesi": "Düşük",
-        "fiyat_degerlendirmesi": "Emsallerine göre makul."
+        "ikinci_el_likiditesi": "Niş araçtır, yavaş satılır.",
+        "fiyat_degerlendirmesi": "FIRSAT - Değerinin 40.000 TL altında, hızlı giden alır."
     },
-    "satici_notu_ozeti": "Bakımlı, hobi aracı.",
-    "kapsamli_ekspertiz_raporu": "Araç genel kondisyon olarak iyi durumda."
+    "satici_notu_ozeti": "Bakımlı, hobi aracı."
 }
 
 def build_prompt(user_text: Optional[str] = None):
@@ -95,10 +91,24 @@ def build_prompt(user_text: Optional[str] = None):
     if user_text:
         base_prompt += f"\nNOT: Kullanıcı şu bilgileri iletti: '{user_text}'.\n"
 
+    # 🚀 LEAD DOKUNUŞU: Masal anlatan prompt yerini "Kesin Kurallar"a bıraktı.
     base_prompt += """
     GÖREV 1: Verileri ayıkla.
     GÖREV 2: Bilgi bankanı tara (kronik sorunlar, şanzıman vb.).
     GÖREV 3: BİREBİR aşağıdaki JSON formatında yanıt ver.
+    
+    ÖNEMLİ KURALLAR:
+    
+    - "yapay_zeka_mekanik_yorumu" alanı DOĞRUDAN motor ve şanzıman kondisyonuna odaklanan 2 veya 3 net cümleden oluşmalı. 
+      Formülün şu olmalı: [Motorun kronik riski] + [Şanzıman tipi ve arıza maliyeti] + [Usta uyarısı].
+      Asla genel geçer sözler söyleme, doğrudan sanayi jargonuyla nokta atışı yap.
+      (Örn: "1.4 TSI motorlarda 100 bin km sonrası triger zinciri uzaması ve yağ yakma kroniktir, kompresyon testi şart. Üzerindeki 7 ileri kuru kavrama DSG şanzımanın mekatronik beyni saatli bombadır; kavrama titremesi varsa anında 50 bin TL masraf açar")
+    
+    - "fiyat_degerlendirmesi" alanı SADECE şu kelimelerden birini içermeli ve maksimum 1 cümle olmalı: "PAHALI", "FIRSAT", "NORMAL". kesinlikle cümle degil kelime")
+    - "ikinci_el_likiditesi" alanı maksimum 3-4 kelime veya 1 cümle olmalı. (Örn: "Peynir ekmek gibi satılır" veya "Niş araç, bekletir").
+    - Asla uzun paragraf veya hikaye yazma. Kısa ve öz ol.
+    - Teknik ve kronik bilgiler için 5-6 madde yaz
+    - Motor ve şanzımana ilk olarak yorum yap 1 cümle
     
     İstenen JSON Yapısı:
     {
@@ -106,13 +116,14 @@ def build_prompt(user_text: Optional[str] = None):
       "ekspertiz_durumu": {"boyali_parcalar": [], "degisen_parcalar": [], "hasar_kaydi": ""},
       "teknik_ve_kronik_bilgiler": {"motor_kodu": "", "sanziman_tipi": "", "kronik_sorunlar": [], "fabrika_geri_cagirmalari": [], "agir_bakim_tahmini": "", "obd_ve_mekanik_tavsiyeler": [], "yapay_zeka_mekanik_yorumu": ""},
       "piyasa_analizi": {"ikinci_el_likiditesi": "", "fiyat_degerlendirmesi": ""},
-      "satici_notu_ozeti": "",
-      "kapsamli_ekspertiz_raporu": ""
+      "satici_notu_ozeti": ""
     }
     """
     return base_prompt
 
-# ... önceki kodlar ...
+# - "yapay_zeka_mekanik_yorumu" alanı 250 KARAKTER ve 3 cümle olmalı. Tokat gibi, net ve vurucu bir sanayi ustası yorumu yaz. (Örn: "Kavrama titremesine dikkat et, temizse 100 bin km üzmez.")
+#    - "yapay_zeka_mekanik_yorumu" alanı 3 kısa cümleden oluşmalı. İlk cümle motor/şanzıman uyumunu ve performansı, diğerleri doğrudan arabaya özel usta tavsiye ve yorumu. Çok uzatma ama doyurucu bir sanayi ustası analizi olsun. (Örn: "Bu motor kasayı rahat çeker ama 100 bin km devirdiği için kavrama titremesine dikkat etmelisin. Şanzıman yağı değişmemişse 40 bin TL masraf açabilir, almadan önce mutlaka kontrol ettir.")
+
 
 @app.post("/analiz")
 async def arac_analiz_et(
@@ -130,14 +141,16 @@ async def arac_analiz_et(
         final_sonuc = MOCK_DATA
         print("🛠️ DEBUG MODU: Mock veri dönülüyor, Gemini'ye gidilmedi.")
     else:
-
-        import google.generativeai as genai # Gerektiğinde import et
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
+        import google.generativeai as genai
+        
         api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="API Key eksik! .env dosyasını kontrol et.")
+            
         print(f"Sistem Başlatıldı. Kullanılan API Key (ilk 4): {api_key[:4]}***")
         genai.configure(api_key=api_key)
-        #model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Not: Eğer "gemini-2.5-flash" isimli model henüz aktif değilse "gemini-2.0-flash" veya "gemini-1.5-flash" yapabilirsin.
         model = genai.GenerativeModel("gemini-2.5-flash")
 
         try:
@@ -150,7 +163,6 @@ async def arac_analiz_et(
             if foto_aciklama:
                 icerik_listesi.append(Image.open(io.BytesIO(await foto_aciklama.read())))
 
-            # Gemini 2.0 Flash kullanımı
             response = model.generate_content(
                 icerik_listesi,
                 generation_config={"response_mime_type": "application/json"}
@@ -164,7 +176,7 @@ async def arac_analiz_et(
     # --- VERİTABANI KAYIT ---
     db = SessionLocal()
     try:
-        print("💾 SUPABASE'E KAYIT DENENİYOR...")
+        print("💾 VERİTABANINA KAYIT DENENİYOR...")
         arac = final_sonuc.get("arac_bilgileri", {})
         
         yeni_analiz = AracAnaliz(
@@ -175,13 +187,12 @@ async def arac_analiz_et(
         )
         
         db.add(yeni_analiz)
-        db.commit() # Veriyi kalıcı hale getirir
+        db.commit()
         db.refresh(yeni_analiz)
         print(f"🚀 KAYIT BAŞARILI! ID: {yeni_analiz.id}")
     except Exception as e:
         db.rollback()
         print(f"🚨 DB KAYIT HATASI: {e}")
-        # Not: DB hatası olsa bile kullanıcıya analizi dönmek isteyebilirsin
     finally:
         db.close()
 
@@ -202,7 +213,7 @@ async def gecmis_analizleri_getir():
                 "model": a.model,
                 "yil": a.yil,
                 "tarih": a.olusturulma_tarihi.strftime("%d.%m.%Y %H:%M"),
-                "sonuc": a.sonuc_json  # <--- Burayı 'detay'dan 'sonuc'a çevirdik
+                "sonuc": a.sonuc_json 
             })
         return liste
     except Exception as e:

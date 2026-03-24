@@ -137,7 +137,7 @@ class RaporSayfasi extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 2. MEKANİK VE KRONİK BİLGİLER (Yeni Motor/Şanzıman Görünümü)
+            // 2. MEKANİK VE KRONİK BİLGİLER
             _eliteBilgiKarti(
               baslik: "Ustasının Mekanik Analizi",
               icon: Icons.auto_awesome,
@@ -145,7 +145,6 @@ class RaporSayfasi extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🚀 YENİ: Motor ve Şanzıman Yan Yana (Bento stilinin şıklığı)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -154,7 +153,6 @@ class RaporSayfasi extends StatelessWidget {
                       Expanded(child: _bilgiSatiri("Şanzıman", teknik['sanziman_tipi'])),
                     ],
                   ),
-                  
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -190,36 +188,82 @@ class RaporSayfasi extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 3. PİYASA ANALİZİ
-            // 3. PİYASA ANALİZİ
+            // 3. PİYASA ANALİZİ (YENİ ROZET SİSTEMİ)
             _eliteBilgiKarti(
               baslik: "Piyasa ve Fiyat",
               icon: Icons.insights,
               accentColor: const Color(0xFF00D2D3),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // Sola yaslı durması için
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🚀 YENİ: Alt alta, ferah ve okunaklı
                   _bilgiSatiri("Satış Hızı", piyasa['ikinci_el_likiditesi']),
-                  _bilgiSatiri("Fiyat Durumu", piyasa['fiyat_degerlendirmesi']),
+                  
+                  // 🚀 YENİ: Fiyat Durumu Rozeti (Badge)
+                  Text("FİYAT DURUMU", style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  const SizedBox(height: 8),
+                  _fiyatRozeti(piyasa['fiyat_degerlendirmesi']?.toString() ?? ""),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
-
-            // 4. ÖZET RAPOR
-            const SizedBox(height: 20),
-            _eliteBilgiKarti(
-              baslik: "Eksper Özeti", 
-              icon: Icons.description_outlined, 
-              accentColor: Colors.orangeAccent, 
-              child: Text(
-                veri['kapsamli_ekspertiz_raporu'] ?? "-",
-                style: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87),
-              )
-            ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 40), 
           ],
         ),
+      ),
+    );
+  }
+
+ // --- 🚀 YENİ: TAŞMA HATASI GİDERİLMİŞ, KISA ROZET FONKSİYONU ---
+  Widget _fiyatRozeti(String deger) {
+    String altMetin = deger.toUpperCase();
+    Color arkaplanRengi;
+    Color yaziRengi;
+    IconData ikon;
+
+    // Metinleri ekranı patlatmamak için çok kısa (2 kelime) tutuyoruz
+    if (altMetin.contains("PAHALI") || altMetin.contains("YÜKSEK")) {
+      arkaplanRengi = Colors.redAccent.withOpacity(0.1);
+      yaziRengi = Colors.redAccent;
+      ikon = Icons.arrow_upward_rounded;
+      altMetin = "YÜKSEK FİYAT"; 
+    } else if (altMetin.contains("FIRSAT") || altMetin.contains("UYGUN")) {
+      arkaplanRengi = Colors.green.withOpacity(0.1);
+      yaziRengi = Colors.green;
+      ikon = Icons.local_offer_rounded;
+      altMetin = "FIRSAT ARACI"; 
+    } else if (altMetin.contains("NORMAL") || altMetin.contains("MAKUL") || altMetin.contains("DEĞERİNDE")) {
+      arkaplanRengi = Colors.orangeAccent.withOpacity(0.1);
+      yaziRengi = Colors.orangeAccent;
+      ikon = Icons.balance_rounded;
+      altMetin = "PİYASA DEĞERİ"; 
+    } else {
+      arkaplanRengi = Colors.grey.withOpacity(0.1);
+      yaziRengi = Colors.grey[700]!;
+      ikon = Icons.help_outline_rounded;
+      altMetin = "ANALİZ EDİLİYOR...";
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: arkaplanRengi,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: yaziRengi.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(ikon, color: yaziRengi, size: 18),
+          const SizedBox(width: 8),
+          // 🚀 LEAD DOKUNUŞU: Ne olursa olsun taşmayı engellemek için Flexible eklendi
+          Flexible(
+            child: Text(
+              altMetin,
+              style: TextStyle(color: yaziRengi, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
+              overflow: TextOverflow.ellipsis, // Sığmazsa "..." koyar, kırmızı ekran vermez
+            ),
+          ),
+        ],
       ),
     );
   }

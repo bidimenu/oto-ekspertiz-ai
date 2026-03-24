@@ -12,7 +12,24 @@ import 'package:frontend/serviceses/kredi_servisi.dart'; // 🚀 EKLENDİ
 import 'splash_ekrani.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
 import 'odeme_servisi.dart'; // 🚀 Ödeme servisini buraya import ettik
 
-const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
+//const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
+
+
+const bool isDebugMode = false; 
+
+String get baseApiUrl {
+  if (!isDebugMode) {
+    // ☁️ CANLI (PRODUCTION) SUNUCU (Cloud Run)
+    return "https://oto-backend-yeni-354386706606.europe-west3.run.app";
+  }
+  
+  // 💻 LOCALHOST (DEBUG) SUNUCU - Windows için
+  return "http://127.0.0.1:8000"; 
+}
+
+
+
+
 
 void main() async {
   // 1. Flutter motorunun ve binding'lerin hazır olduğundan emin oluyoruz
