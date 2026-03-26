@@ -31,25 +31,32 @@ class OdemeServisi {
   }
 
   // 2. SATIN ALMA İŞLEMİ (Kullanıcı butona basınca FaceID açar)
+// ... diğer kodlar aynı kalacak
+
   Future<bool> paketSatinAl() async {
     try {
-      // RevenueCat'teki vitrini (Offering) çekiyoruz
       Offerings offerings = await Purchases.getOfferings();
       
       if (offerings.current != null && offerings.current!.availablePackages.isNotEmpty) {
-        // Vitrindeki ilk paketi satın alması için Apple ekranını tetikliyoruz
-        CustomerInfo customerInfo = await Purchases.purchasePackage(offerings.current!.availablePackages.first);
+        
+        // 🚀 İŞTE DEĞİŞEN SATIR: Artık PurchaseResult dönüyor
+        PurchaseResult result = await Purchases.purchasePackage(offerings.current!.availablePackages.first);
         
         debugPrint("🎉 ÖDEME BAŞARILI! Apple onay verdi.");
+        
+        // Artık CustomerInfo'ya bu result'ın içinden ulaşabilirsin (İleride gerekirse)
+        // CustomerInfo customerInfo = result.customerInfo;
+        
         return true; 
       } else {
         debugPrint("⚠️ RevenueCat'te satılacak paket bulunamadı!");
         return false;
       }
     } catch (e) {
-      // Kullanıcı vazgeçerse veya kart reddedilirse buraya düşer
       debugPrint("❌ Ödeme İptal Edildi veya Hata: $e");
       return false;
     }
   }
+
+// ... diğer kodlar aynı kalacak
 }

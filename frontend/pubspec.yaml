@@ -18,8 +18,8 @@ dependencies:
   share_plus: ^12.0.1
   supabase_flutter: ^2.12.0
   device_info_plus: ^12.3.0
-  purchases_flutter: ^7.0.2  # 🚀 RevenueCat ana paketi
-  purchases_ui_flutter: ^7.0.0 # 🚀 Hazır ödeme arayüzleri için (isteğe bağlı)
+  purchases_flutter: ^9.15.1  # 🚀 RevenueCat ana paketi
+  purchases_ui_flutter: ^9.15.1 # 🚀 Hazır ödeme arayüzleri için (isteğe bağlı)
 
 
 
