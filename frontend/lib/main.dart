@@ -14,7 +14,6 @@ import 'odeme_servisi.dart'; // 🚀 Ödeme servisini buraya import ettik
 
 //const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
 
-
 const bool isDebugMode = false; 
 
 String get baseApiUrl {
@@ -26,10 +25,6 @@ String get baseApiUrl {
   // 💻 LOCALHOST (DEBUG) SUNUCU - Windows için
   return "http://127.0.0.1:8000"; 
 }
-
-
-
-
 
 void main() async {
   // 1. Flutter motorunun ve binding'lerin hazır olduğundan emin oluyoruz
@@ -122,60 +117,85 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   }
 
   // 🚀 KREDİ BİTTİĞİNDE ÇIKACAK ÖDEME (PAYWALL) EKRANI
-void _krediSatinAlModal() {
+  void _krediSatinAlModal() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      isScrollControlled: true, // 🚀 1. KRİTİK DEĞİŞİKLİK: Modal'in ekranın daha büyük bir kısmını kaplamasına izin verir
+      isScrollControlled: true, 
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
       builder: (context) => Padding(
-        // 🚀 2. KRİTİK DEĞİŞİKLİK: Ekranın alt kısmına (klavye vs.) duyarlı padding
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: SingleChildScrollView( // 🚀 3. KRİTİK DEĞİŞİKLİK: İçerik taşarsa kaydırma özelliği ekler
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30), // Padding'i daralttık (30'dan 24'e)
+        child: SingleChildScrollView( 
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30), 
           child: Column(
-            mainAxisSize: MainAxisSize.min, // Sadece içeriği kadar büyü
+            mainAxisSize: MainAxisSize.min, 
             children: [
-              // Üstte modalı kapatma/çekme çizgisi (UX Dokunuşu)
               Container(
                 width: 40,
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
               ),
-              const Icon(Icons.bolt, size: 45, color: Colors.cyan), // İkon biraz küçültüldü
+              const Icon(Icons.bolt, size: 45, color: Colors.cyan), 
               const SizedBox(height: 12),
-              const Text("KREDİ YÜKLE", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)), // Başlık kısaldı
+              const Text("KREDİ YÜKLE", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)), 
               const SizedBox(height: 8),
               const Text(
                 "Yapay zeka analizine devam etmek için paket seçin.", 
                 textAlign: TextAlign.center, 
-                style: TextStyle(color: Colors.grey, fontSize: 13), // Açıklama fontu inceltildi
+                style: TextStyle(color: Colors.grey, fontSize: 13), 
               ),
               const SizedBox(height: 25),
-              _paketButonu("1 ANALİZ HAKKI", "99 TL", () {
-                // RevenueCat 1 Kredi satın alma
+              
+              // 🚀 1 KREDİ BUTONU AKTİF EDİLDİ 🚀
+              _paketButonu("1 ANALİZ HAKKI", "99 TL", () async {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Apple'a bağlanılıyor...")));
+                
+                // 1_kredi parametresi gönderiliyor
+                bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_six_month");
+                
+                if (odemeBasarili) {
+                  await _krediServisi.krediSatinAlTest(1); // 1 Kredi yaz
+                  await _krediGuncelle();
+                  
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ 1 Kredi başarıyla yüklendi!")));
+                  }
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("⚠️ Ödeme işlemi iptal edildi.")));
+                  }
+                }
               }),
+              
               const SizedBox(height: 12),
+              
+              // 🚀 3 KREDİ BUTONU GÜNCELLENDİ 🚀
               _paketButonu("3 ANALİZ (POPÜLER)", "199 TL", () async {
-              // 1. Ödeme yapılıyor hissi vermek için ekrana loading çıkarabilirsin
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ödeme işleniyor...")));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Apple'a bağlanılıyor...")));
+                
+                // 3_kredi parametresi gönderiliyor
+                bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_lifetime");
+                
+                if (odemeBasarili) {
+                  await _krediServisi.krediSatinAlTest(3); // 3 Kredi yaz
+                  await _krediGuncelle();
+                  
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ 3 Kredi başarıyla yüklendi!")));
+                  }
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("⚠️ Ödeme işlemi iptal edildi.")));
+                  }
+                }
+              }, highlight: true),
               
-              // 2. 2 saniye sahte bekleme süresi (Sanki Apple/Google ile konuşuyormuş gibi)
-              await Future.delayed(const Duration(seconds: 2));
-              
-              // 3. Supabase veritabanına 3 kredi yaz
-              await _krediServisi.krediSatinAlTest(3);
-              
-              // 4. Arayüzü güncelle ve modalı kapat
-              await _krediGuncelle();
-              Navigator.pop(context); // Alt menüyü kapat
-              
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ 3 Kredi başarıyla yüklendi!")));
-          }, highlight: true),
-              const SizedBox(height: 10), // En altta güvenli boşluk
+              const SizedBox(height: 10), 
             ],
           ),
         ),
@@ -183,19 +203,16 @@ void _krediSatinAlModal() {
     );
   }
 
-
-
-Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highlight = false}) {
+  Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highlight = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), // Dikey boşluk (padding) küçültüldü (18'den 14'e)
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
         decoration: BoxDecoration(
           color: highlight ? Colors.cyan : Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.cyan, width: 2),
-          // Highlight ise hafif bir gölge ekleyelim (UX)
           boxShadow: highlight ? [BoxShadow(color: Colors.cyan.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
         ),
         child: Row(
@@ -203,11 +220,11 @@ Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highl
           children: [
             Text(
               baslik, 
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: highlight ? Colors.white : Colors.cyan) // Font boyutu ayarlandı
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: highlight ? Colors.white : Colors.cyan) 
             ),
             Text(
               fiyat, 
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: highlight ? Colors.white : Colors.cyan) // Font boyutu ayarlandı
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: highlight ? Colors.white : Colors.cyan) 
             ),
           ],
         ),
@@ -414,13 +431,13 @@ Widget _paketButonu(String baslik, String fiyat, VoidCallback onTap, {bool highl
   }
 
   // 🚀 YENİ: CÜZDAN / KREDİ BANNER'I
-Widget _buildCreditBanner() {
+  Widget _buildCreditBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 1. Dikey boşluk (vertical) 16'dan 12'ye kısıldı
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), 
       decoration: BoxDecoration(
         color: Colors.cyan.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16), // Köşeler biraz daha estetik hale getirildi
+        borderRadius: BorderRadius.circular(16), 
         border: Border.all(color: Colors.cyan.withOpacity(0.3)),
       ),
       child: Row(
@@ -429,25 +446,25 @@ Widget _buildCreditBanner() {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8), // 2. İkonun etrafındaki beyaz alan küçültüldü
+                padding: const EdgeInsets.all(8), 
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                   boxShadow: [BoxShadow(color: Colors.cyan.withOpacity(0.2), blurRadius: 6)],
                 ),
-                child: const Icon(Icons.bolt, color: Colors.cyan, size: 16), // İkon boyutu 20'den 16'ya indi
+                child: const Icon(Icons.bolt, color: Colors.cyan, size: 16), 
               ),
-              const SizedBox(width: 12), // 3. İkon ile metin arası mesafe daraltıldı
+              const SizedBox(width: 12), 
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Mevcut Bakiye", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)), // Fontlar küçüldü
-                  Text("$mevcutKredi Analiz Kredisi", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.cyan)), // Fontlar küçüldü
+                  const Text("Mevcut Bakiye", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)), 
+                  Text("$mevcutKredi Analiz Kredisi", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.cyan)), 
                 ],
               ),
             ],
           ),
-          // 4. "YÜKLE" butonu daha hap (pill) şeklinde ve küçük hale getirildi
+          // 4. "YÜKLE" butonu
           GestureDetector(
             onTap: _krediSatinAlModal, 
             child: Container(

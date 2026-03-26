@@ -18,7 +18,7 @@ class OdemeServisi {
 
       if (Platform.isIOS) {
         // 🔑 Senin RevenueCat iOS API Anahtarın
-        configuration = PurchasesConfiguration("test_xtMQPkAEMyZoCMSOawFJOTozaHZ");
+        configuration = PurchasesConfiguration("test_KDaYPxeWVGHRKoYSlHcFApsEhht");
       }
 
       if (configuration != null) {
@@ -33,23 +33,29 @@ class OdemeServisi {
   // 2. SATIN ALMA İŞLEMİ (Kullanıcı butona basınca FaceID açar)
 // ... diğer kodlar aynı kalacak
 
-  Future<bool> paketSatinAl() async {
+// Dışarıdan paketId alacak şekilde güncelledik
+  Future<bool> paketSatinAl(String paketId) async {
     try {
       Offerings offerings = await Purchases.getOfferings();
       
       if (offerings.current != null && offerings.current!.availablePackages.isNotEmpty) {
         
-        // 🚀 İŞTE DEĞİŞEN SATIR: Artık PurchaseResult dönüyor
-        PurchaseResult result = await Purchases.purchasePackage(offerings.current!.availablePackages.first);
+        // 🚀 VİTRİNDEN KULLANICININ SEÇTİĞİ PAKETİ BULUYORUZ
+        Package? secilenPaket;
+        try {
+          secilenPaket = offerings.current!.availablePackages.firstWhere((p) => p.identifier == paketId);
+        } catch (e) {
+          debugPrint("⚠️ Paketi RevenueCat'te bulamadık: $paketId");
+          return false;
+        }
         
+        // Seçilen paketle Apple ekranını çağır
+        PurchaseResult result = await Purchases.purchasePackage(secilenPaket);
         debugPrint("🎉 ÖDEME BAŞARILI! Apple onay verdi.");
-        
-        // Artık CustomerInfo'ya bu result'ın içinden ulaşabilirsin (İleride gerekirse)
-        // CustomerInfo customerInfo = result.customerInfo;
         
         return true; 
       } else {
-        debugPrint("⚠️ RevenueCat'te satılacak paket bulunamadı!");
+        debugPrint("⚠️ RevenueCat'te aktif vitrin yok!");
         return false;
       }
     } catch (e) {
