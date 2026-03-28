@@ -18,7 +18,7 @@ class OdemeServisi {
 
       if (Platform.isIOS) {
         // 🔑 Senin RevenueCat iOS API Anahtarın
-        configuration = PurchasesConfiguration("test_KDaYPxeWVGHRKoYSlHcFApsEhht");
+        configuration = PurchasesConfiguration("appl_HGzgwVMZMDOuBdCeywAVCxxFldB");
       }
 
       if (configuration != null) {
