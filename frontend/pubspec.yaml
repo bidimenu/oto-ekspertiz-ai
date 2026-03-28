@@ -31,6 +31,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # Eğer ileride ikon veya placeholder eklersek burası hazır kalsın
-  # assets:
-  #   - assets/
+  assets:
+    - .env

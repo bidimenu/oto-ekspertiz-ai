@@ -1,0 +1,69 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "F5B91464",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "99.0",
+      "familyShareable" : false,
+      "internalID" : "6188F3DB",
+      "localizations" : [
+        {
+          "description" : "1 Adet Detaylı Araç Analiz Hakkı",
+          "displayName" : "1 Analiz Kredisi",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "oto_kredi_10",
+      "referenceName" : "1 Kredi Paketi",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "199.0",
+      "familyShareable" : false,
+      "internalID" : "245061BC",
+      "localizations" : [
+        {
+          "description" : "3 Adet Detaylı Araç Analiz Hakkı",
+          "displayName" : "3 Analiz Kredisi",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "oto_kredi_100",
+      "referenceName" : "3 Kredi Paketi",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

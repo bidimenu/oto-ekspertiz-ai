@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -29,7 +30,7 @@ String get baseApiUrl {
 void main() async {
   // 1. Flutter motorunun ve binding'lerin hazır olduğundan emin oluyoruz
   WidgetsFlutterBinding.ensureInitialized();
-  
+  await dotenv.load(fileName: ".env"); // 🚀 ENV'Yİ BAŞLAT
   // 2. 🚀 SUPABASE BAŞLATMA
   await Supabase.initialize(
     url: 'https://xwiodyndbewwmpsvrtql.supabase.co', 
@@ -157,7 +158,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                 bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_six_month");
                 
                 if (odemeBasarili) {
-                  await _krediServisi.krediSatinAlTest(1); // 1 Kredi yaz
+                  await _krediServisi.krediEkle(1); // 1 Kredi yaz
                   await _krediGuncelle();
                   
                   if (context.mounted) {
@@ -181,7 +182,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                 bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_lifetime");
                 
                 if (odemeBasarili) {
-                  await _krediServisi.krediSatinAlTest(3); // 3 Kredi yaz
+                  await _krediServisi.krediEkle(3); // 3 Kredi yaz
                   await _krediGuncelle();
                   
                   if (context.mounted) {
