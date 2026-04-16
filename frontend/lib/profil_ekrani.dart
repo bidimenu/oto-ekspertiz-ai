@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // 🚀 Eklendi
 import 'onboarding_ekrani.dart';
 import 'splash_ekrani.dart';
+import 'rapor_sayfasi.dart';
 
 class ProfilEkrani extends StatelessWidget {
   const ProfilEkrani({super.key});
@@ -74,7 +75,7 @@ class ProfilEkrani extends StatelessWidget {
                   );
                 }
 
-                return ListView.builder(
+              return ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: analizler.length,
@@ -82,9 +83,19 @@ class ProfilEkrani extends StatelessWidget {
                     final item = analizler[index];
                     return _buildHistoryItem(
                       "${item.marka} ${item.model}",
-                      item.tarih, // Modelde formatladığımız tarih
-                      "Raporu Gör", // Buraya istersen item içinden bir özet basabilirsin
+                      item.tarih, 
+                      "Raporu Gör", 
                       const Color(0xFF00D2D3),
+                      // 🚀 YENİ EKLENEN KISIM: Tıklanınca RaporSayfasi'na uçuyoruz!
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            // GecmisAnaliz modelindeki 'detay' map'ini RaporSayfasi'na basıyoruz
+                            builder: (context) => RaporSayfasi(veri: item.detay), 
+                          ),
+                        );
+                      },
                     );
                   },
                 );
@@ -152,8 +163,9 @@ class ProfilEkrani extends StatelessWidget {
     );
   }
 
-  Widget _buildHistoryItem(String title, String sub, String status, Color color) {
+  Widget _buildHistoryItem(String title, String sub, String status, Color color, {VoidCallback? onTap}) {
     return ListTile(
+      onTap: onTap, // 🚀 Tıklanabilirlik eklendi!
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(color: const Color(0xFFF0F9F9), borderRadius: BorderRadius.circular(10)),
@@ -168,7 +180,6 @@ class ProfilEkrani extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildActionTile(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap, bool isDestructive = false}) {
     return ListTile(
       leading: Icon(icon, color: isDestructive ? Colors.red : Colors.black87),

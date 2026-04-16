@@ -39,7 +39,8 @@ const bool isDebugMode = false;
 String get baseApiUrl {
   if (!isDebugMode) {
     // ☁️ CANLI (PRODUCTION) SUNUCU (Cloud Run)
-    return "https://oto-backend-yeni-354386706606.europe-west3.run.app";
+    return "https://auto-scan-api-354386706606.europe-west1.run.app";
+    //return "https://oto-backend-yeni-354386706606.europe-west3.run.app";
   }
   
   // 💻 LOCALHOST (DEBUG) SUNUCU - Windows için
