@@ -28,6 +28,7 @@ class AracAnaliz(Base):
     __tablename__ = "analizler"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    cihaz_id = Column(String, nullable=True) # 🚀 BURA EKLENDİ
     marka = Column(String)
     model = Column(String)
     yil = Column(String)
@@ -129,7 +130,8 @@ def build_prompt(user_text: Optional[str] = None):
 async def arac_analiz_et(
     foto_detay: Optional[UploadFile] = File(None),
     foto_aciklama: Optional[UploadFile] = File(None),
-    manuel_text: Optional[str] = Form(None)
+    manuel_text: Optional[str] = Form(None),
+    cihaz_id: Optional[str] = Form(None) # 🚀 BURA EKLENDİ: Flutter'dan gelen ID'yi yakalayacak
 ):
     # DİKKAT: Gemini'ye gitmek için bunu False yapmalısın!
     DEBUG_MODE = False 
@@ -183,7 +185,8 @@ async def arac_analiz_et(
             marka=str(arac.get("marka", "Bilinmiyor")),
             model=str(arac.get("model", "Bilinmiyor")),
             yil=str(arac.get("yil", "0")),
-            sonuc_json=final_sonuc 
+            sonuc_json=final_sonuc,
+            cihaz_id=cihaz_id # 🚀 BURA EKLENDİ: Yakalanan ID veritabanına yazılıyor
         )
         
         db.add(yeni_analiz)

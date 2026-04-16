@@ -14,8 +14,25 @@ import 'splash_ekrani.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
 import 'odeme_servisi.dart'; // 🚀 Ödeme servisini buraya import ettik
 import 'package:frontend/onboarding_ekrani.dart';
 import 'profil_ekrani.dart';
-
+import 'package:device_info_plus/device_info_plus.dart'; // Bu paket yoksa terminalden ekle: flutter pub add device_info_plus
+import 'package:shared_preferences/shared_preferences.dart';
 //const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
+
+
+Future<String> cihazIdHazirla() async {
+  final prefs = await SharedPreferences.getInstance();
+  String? cihazId = prefs.getString('cihaz_id');
+
+  if (cihazId == null) {
+    // Eğer hafızada yoksa yeni alalım (Örn: Android ID veya iOS Identifier)
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    // Basitlik olması açısından rastgele bir ID veya cihaz bilgisi alabilirsin
+    // Şimdilik test için SharedPreferences'ta kayıtlı olduğunu varsayalım.
+    // Senin mevcut 'kullanici_kredileri' tablosundaki 'cihaz_id' ile eşleşmeli.
+  }
+  return cihazId ?? "bilinmeyen_cihaz";
+}
+
 
 const bool isDebugMode = false; 
 
@@ -42,6 +59,19 @@ void main() async {
   // 3. 🚀 REVENUECAT (ÖDEME) BAŞLATMA
   // Uygulama açılmadan önce finansal altyapıyı hazır hale getiriyoruz
   await OdemeServisi().initialize();
+
+
+    // 🚀 ID'Yİ BURADA OLUŞTUR VE KAYDET
+  final prefs = await SharedPreferences.getInstance();
+  if (prefs.getString('cihaz_id') == null) {
+    // Eğer yoksa, benzersiz bir ID oluştur (örneğin timestamp + random)
+    String yeniId = "AS-${DateTime.now().millisecondsSinceEpoch}";
+    await prefs.setString('cihaz_id', yeniId);
+    print("DEBUG: Yeni Cihaz ID Oluşturuldu: $yeniId");
+  } else {
+    print("DEBUG: Mevcut Cihaz ID: ${prefs.getString('cihaz_id')}");
+  }
+
 
   // 4. MASAÜSTÜ PENCERE AYARLARI (Windows testi için)
   if (Platform.isWindows) {
@@ -369,11 +399,14 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     _krediGuncelle();
     setState(() { yukleniyor = true; });
     _startLoadingProcess(); 
-
-    try {
+try {
       print("--- ANALİZ BAŞLADI ---");
       final String cleanUrl = baseApiUrl.trim();
       final targetUrl = Uri.parse('$cleanUrl/analiz');
+      
+      // 🚀 YENİ: Cihaz ID'sini uygulamanın hafızasından çekiyoruz
+      final prefs = await SharedPreferences.getInstance();
+      final String? aktifCihazId = prefs.getString('cihaz_id');
       
       var request = http.MultipartRequest('POST', targetUrl);
       
@@ -382,6 +415,9 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
       }
       
       request.fields['manuel_text'] = _manuelGirisController.text;
+      
+      // 🚀 KRİTİK NOKTA: Backend'e (FastAPI) cihaz ID'sini bildiriyoruz!
+      request.fields['cihaz_id'] = aktifCihazId ?? 'bilinmiyor';
 
       var streamedResponse = await request.send().timeout(const Duration(seconds: 90));
       var responseData = await streamedResponse.stream.bytesToString();
@@ -404,13 +440,21 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
         setState(() {
           fotoDetay = null;
           _manuelGirisController.clear(); 
-          _gecmisVerisi = getGecmisAnalizler(); 
+          _gecmisVerisi = getGecmisAnalizler(); // 🚀 Rapor bitince ana sayfayı tazeler
         });
 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
       }
-    } on TimeoutException catch (e) {
+    } catch (e) {
+      // Hata yakalama bloğu (Eğer yoksa bunu da eklemen uygulamanın çökmesini engeller)
+      print("Analiz sırasında hata oluştu: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Analiz Hatası: $e")));
+      }
+    }
+    
+    on TimeoutException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı. Backend çok uzun sürdü.")));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
@@ -728,19 +772,33 @@ class GecmisAnaliz {
   final String marka;
   final String model;
   final String yil;
-  final String tarih;
+  final String tarih; // UI'da göstermek için formatlı tarih
+  final String? cihazId; // Yeni eklediğimiz alan
   final Map<String, dynamic> detay;
 
-  GecmisAnaliz({required this.id, required this.marka, required this.model, required this.yil, required this.tarih, required this.detay});
+  GecmisAnaliz({
+    required this.id, 
+    required this.marka, 
+    required this.model, 
+    required this.yil, 
+    required this.tarih, 
+    required this.detay,
+    this.cihazId,
+  });
 
   factory GecmisAnaliz.fromJson(Map<String, dynamic> json) {
+    // Supabase'den gelen 'olusturulma_tarihi'ni okunaklı bir tarihe çevirelim
+    DateTime hamTarih = DateTime.parse(json['olusturulma_tarihi'] ?? DateTime.now().toIso8601String());
+    String formatliTarih = "${hamTarih.day}.${hamTarih.month}.${hamTarih.year}";
+
     return GecmisAnaliz(
-      id: json['id'],
-      marka: json['marka'],
-      model: json['model'],
-      yil: json['yil'],
-      tarih: json['tarih'],
-      detay: json['sonuc'],
+      id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
+      marka: json['marka'] ?? '',
+      model: json['model'] ?? '',
+      yil: json['yil'] ?? '',
+      tarih: formatliTarih, // 'olusturulma_tarihi'nden türettik
+      cihazId: json['cihaz_id'], // Tabloya eklediğin yeni sütun
+      detay: json['sonuc_json'] ?? {}, // Tablodaki 'sonuc_json' ile eşleşti
     );
   }
 }
