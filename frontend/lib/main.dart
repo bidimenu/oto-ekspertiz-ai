@@ -382,7 +382,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     }
   }
 
-  Future analizGonder() async {
+Future analizGonder() async {
     if (fotoDetay == null && _manuelGirisController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
       return;
@@ -399,12 +399,13 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     _krediGuncelle();
     setState(() { yukleniyor = true; });
     _startLoadingProcess(); 
-try {
+
+    try {
       print("--- ANALİZ BAŞLADI ---");
       final String cleanUrl = baseApiUrl.trim();
       final targetUrl = Uri.parse('$cleanUrl/analiz');
       
-      // 🚀 YENİ: Cihaz ID'sini uygulamanın hafızasından çekiyoruz
+      // 🚀 YENİ: Uygulama hafızasından cihaz_id'yi çekiyoruz
       final prefs = await SharedPreferences.getInstance();
       final String? aktifCihazId = prefs.getString('cihaz_id');
       
@@ -416,7 +417,7 @@ try {
       
       request.fields['manuel_text'] = _manuelGirisController.text;
       
-      // 🚀 KRİTİK NOKTA: Backend'e (FastAPI) cihaz ID'sini bildiriyoruz!
+      // 🚀 KRİTİK BAĞLANTI: Sunucu (FastAPI) artık analizi kimin yaptığını biliyor!
       request.fields['cihaz_id'] = aktifCihazId ?? 'bilinmiyor';
 
       var streamedResponse = await request.send().timeout(const Duration(seconds: 90));
@@ -440,21 +441,14 @@ try {
         setState(() {
           fotoDetay = null;
           _manuelGirisController.clear(); 
-          _gecmisVerisi = getGecmisAnalizler(); // 🚀 Rapor bitince ana sayfayı tazeler
+          _gecmisVerisi = getGecmisAnalizler(); // Ana sayfadaki herkesin akışını tazeler
         });
 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sunucu hatası: ${streamedResponse.statusCode}")));
       }
-    } catch (e) {
-      // Hata yakalama bloğu (Eğer yoksa bunu da eklemen uygulamanın çökmesini engeller)
-      print("Analiz sırasında hata oluştu: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Analiz Hatası: $e")));
-      }
-    }
-    
-    on TimeoutException catch (e) {
+    } 
+    on TimeoutException catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Bağlantı zaman aşımına uğradı. Backend çok uzun sürdü.")));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
