@@ -66,5 +66,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<key>NSCameraUsageDescription</key>
+	<string>AUTO-SCAN PRO, araç kaportasını ve hasar durumunu tarayıp yapay zeka ile analiz etmek için kameranıza ihtiyaç duyar.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AUTO-SCAN PRO, daha önce çektiğiniz veya indirdiğiniz araç ilan fotoğraflarını ekspertiz analizine sokmak için fotoğraf galerinize erişim izni ister.</string>
+
+
 </dict>
 </plist>

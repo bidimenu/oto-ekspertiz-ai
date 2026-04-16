@@ -46,7 +46,7 @@ class RaporSayfasi extends StatelessWidget {
     return temizSayi.replaceAllMapped(reg, (Match m) => '${m[1]}.');
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     final arac = veri['arac_bilgileri'] ?? {};
     final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
@@ -206,6 +206,31 @@ class RaporSayfasi extends StatelessWidget {
                 ],
               ),
             ),
+            
+            // 🚀 APPLE REVIEW İÇİN ZORUNLU AI UYARISI (EN ALTTA, TEK BAŞINA)
+            const SizedBox(height: 20),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.orange.withOpacity(0.4), width: 1.5),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.gavel_rounded, color: Colors.orange, size: 22),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Bu analiz yapay zeka tarafından üretilmiştir ve yasal bir ekspertiz raporu niteliği taşımaz. Araç alım-satım işlemlerinden önce yetkili merkezlere başvurunuz.",
+                      style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w500, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 40), 
           ],
         ),
@@ -295,7 +320,7 @@ class RaporSayfasi extends StatelessWidget {
     );
   }
 
-  Widget _eliteBilgiKarti({required String baslik, required IconData icon, required Color accentColor, required Widget child}) {
+Widget _eliteBilgiKarti({required String baslik, required IconData icon, required Color accentColor, required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -320,4 +345,5 @@ class RaporSayfasi extends StatelessWidget {
       ),
     );
   }
+  
 }

@@ -1,9 +1,9 @@
+import 'main.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
-import 'main.dart'; // Ana ekrana yönlendirme için
-import 'tanitim_ekrani.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
-
+import 'onboarding_ekrani.dart'; // 🚀 Yeni yaptığımız ekrana yönlendirildi
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,24 +13,50 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true); // Pulse (Nefes alma) efekti
     
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    // 🚀 Animasyon Kontrolcüsü
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
 
-    // 3 saniye sonra ana ekrana geçiş yap
-// splash_ekrani.dart içinde
-    Timer(const Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const TanitimEkrani()), // AnalizEkrani yerine TanitimEkrani'na git
-      );
+    // Hafifçe büyüme efekti (Premium his)
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack)
+    );
+
+    // Karanlıktan aydınlığa yumuşak geçiş
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn)
+    );
+
+    _controller.forward(); // Animasyonu başlat
+
+    // 2.5 saniye sonra geçiş yap
+Timer(const Duration(milliseconds: 2500), () async {
+      final prefs = await SharedPreferences.getInstance();
+      // 'tanitim_goruldu' değeri yoksa (null ise) false kabul et
+      bool tanitimGoruldu = prefs.getBool('tanitim_goruldu') ?? false;
+
+      if (mounted) {
+        if (tanitimGoruldu) {
+          // 🚀 Daha önce görmüş, direkt ana ekrana!
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const AnalizEkrani()),
+          );
+        } else {
+          // 🚀 İlk kez açıyor, tanıtıma gönder
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const OnboardingEkrani()),
+          );
+        }
+      }
     });
   }
 
@@ -43,38 +69,44 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Premium Dark Arka Plan
+      backgroundColor: Colors.white, // 🚀 Karanlık temadan aydınlığa geçtik
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleTransition(
-              scale: _animation,
-              child: Container(
-                padding: const EdgeInsets.all(25),
-                decoration: BoxDecoration(
-                  color: Colors.cyan.withOpacity(0.1),
-                  shape: BoxShape.circle,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 🚀 Yeni temamızla uyumlu Turkuaz/Beyaz ikon kutusu
+                Container(
+                  padding: const EdgeInsets.all(35),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00D2D3).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.document_scanner_rounded, color: Color(0xFF00D2D3), size: 80),
                 ),
-                child: const Icon(Icons.bolt, color: Colors.cyan, size: 80), // Ana ikonumuz
-              ),
+                const SizedBox(height: 30),
+                
+                Text(
+                  "AUTO-SCAN PRO",
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                
+                Text(
+                  "YAPAY ZEKA DESTEKLİ EKSPERTİZ",
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
-            const SizedBox(height: 30),
-            Text(
-              "AUTO-SCAN PRO",
-              style: GoogleFonts.rajdhani(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 3,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "YAPAY ZEKA DESTEKLİ EKSPERTİZ",
-              style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.5),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -10,7 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'; // 🚀 EKLENDİ
 import 'rapor_sayfasi.dart';
 import 'package:frontend/serviceses/kredi_servisi.dart'; // 🚀 EKLENDİ
-import 'splash_ekrani.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
+import 'splash_ekrani2.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
 import 'odeme_servisi.dart'; // 🚀 Ödeme servisini buraya import ettik
 
 //const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";

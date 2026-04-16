@@ -52,13 +52,32 @@ class OdemeServisi {
     }
   }
 
-  // 🍏 APPLE APP REVIEW İÇİN ZORUNLU METOD
-  Future<void> satinAlmalariGeriYukle() async {
+
+
+  // 🚀 APPLE REVIEW İÇİN ZORUNLU: SATIN ALMALARI GERİ YÜKLE
+  Future<bool> satinAlmalariGeriYukle() async {
+    // 🚧 WINDOWS İÇİN SİMÜLASYON
+    if (Platform.isWindows) {
+      debugPrint("💻 Windows Testi: Geri yükleme simüle edildi!");
+      await Future.delayed(const Duration(seconds: 1));
+      return false; // Testte genelde geri yüklenecek bir şey yoktur
+    }
+
     try {
-      await Purchases.restorePurchases();
-      debugPrint("🔄 Satın almalar geri yüklendi.");
+      debugPrint("🔄 Satın almalar geri yükleniyor...");
+      CustomerInfo customerInfo = await Purchases.restorePurchases();
+      
+      // Eğer kullanıcının geçmişten gelen aktif bir paketi varsa
+      if (customerInfo.entitlements.active.isNotEmpty) {
+        debugPrint("✅ Geri yükleme başarılı, aktif paket bulundu!");
+        return true;
+      } else {
+        debugPrint("⚠️ Geri yüklenecek aktif paket bulunamadı.");
+        return false;
+      }
     } catch (e) {
-      debugPrint("❌ Geri yükleme hatası: $e");
+      debugPrint("❌ Geri Yükleme Hatası: $e");
+      return false;
     }
   }
 }

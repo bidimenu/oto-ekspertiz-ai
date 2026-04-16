@@ -12,6 +12,8 @@ import 'rapor_sayfasi.dart';
 import 'package:frontend/serviceses/kredi_servisi.dart'; // 🚀 EKLENDİ
 import 'splash_ekrani.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
 import 'odeme_servisi.dart'; // 🚀 Ödeme servisini buraya import ettik
+import 'package:frontend/onboarding_ekrani.dart';
+import 'profil_ekrani.dart';
 
 //const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
 
@@ -113,11 +115,16 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     if (mounted) {
       setState(() {
         mevcutKredi = bakiye;
-      });
+      }
+      
+      
+      )
+      
+      ;
     }
   }
 
-  // 🚀 KREDİ BİTTİĞİNDE ÇIKACAK ÖDEME (PAYWALL) EKRANI
+// 🚀 KREDİ BİTTİĞİNDE ÇIKACAK ÖDEME (PAYWALL) EKRANI
   void _krediSatinAlModal() {
     showModalBottomSheet(
       context: context,
@@ -150,17 +157,14 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
               ),
               const SizedBox(height: 25),
               
-              // 🚀 1 KREDİ BUTONU AKTİF EDİLDİ 🚀
+              // 🚀 1 KREDİ BUTONU
               _paketButonu("1 ANALİZ HAKKI", "99 TL", () async {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Apple'a bağlanılıyor...")));
-                
-                // 1_kredi parametresi gönderiliyor
                 bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_six_month");
                 
                 if (odemeBasarili) {
-                  await _krediServisi.krediEkle(1); // 1 Kredi yaz
+                  await _krediServisi.krediEkle(1);
                   await _krediGuncelle();
-                  
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ 1 Kredi başarıyla yüklendi!")));
@@ -174,17 +178,14 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
               
               const SizedBox(height: 12),
               
-              // 🚀 3 KREDİ BUTONU GÜNCELLENDİ 🚀
+              // 🚀 3 KREDİ BUTONU (POPÜLER)
               _paketButonu("3 ANALİZ (POPÜLER)", "199 TL", () async {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Apple'a bağlanılıyor...")));
-                
-                // 3_kredi parametresi gönderiliyor
                 bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_lifetime");
                 
                 if (odemeBasarili) {
-                  await _krediServisi.krediEkle(3); // 3 Kredi yaz
+                  await _krediServisi.krediEkle(3);
                   await _krediGuncelle();
-                  
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ 3 Kredi başarıyla yüklendi!")));
@@ -196,7 +197,56 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                 }
               }, highlight: true),
               
-              const SizedBox(height: 10), 
+              const SizedBox(height: 15), 
+
+              // 🚀 APPLE REVIEW ZORUNLU: SATIN ALMALARI GERİ YÜKLE
+              TextButton(
+                onPressed: () async {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Geçmiş satın almalarınız kontrol ediliyor..."))
+                  );
+                  bool geriYuklendi = await OdemeServisi().satinAlmalariGeriYukle();
+                  if (context.mounted) {
+                    if (geriYuklendi) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("✅ Satın almalarınız başarıyla geri yüklendi!")));
+                      Navigator.pop(context); 
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Geri yüklenecek aktif bir satın alma bulunamadı.")));
+                    }
+                  }
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey[600],
+                  textStyle: const TextStyle(fontSize: 12, decoration: TextDecoration.underline),
+                ),
+                child: const Text("Satın Almaları Geri Yükle"),
+              ),
+              
+              const SizedBox(height: 10),
+
+              // 🚀 APPLE REVIEW ZORUNLU: LEGAL LİNKLER
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      // Buraya ileride web linkini bağlayacağız
+                      debugPrint("Kullanım Koşulları tıklandı");
+                    },
+                    child: const Text("Kullanım Koşulları", style: TextStyle(fontSize: 10, color: Colors.blue, decoration: TextDecoration.underline)),
+                  ),
+                  const Text("  |  ", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                  GestureDetector(
+                    onTap: () {
+                      // Buraya ileride web linkini bağlayacağız
+                      debugPrint("Gizlilik Politikası tıklandı");
+                    },
+                    child: const Text("Gizlilik Politikası", style: TextStyle(fontSize: 10, color: Colors.blue, decoration: TextDecoration.underline)),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 15),
             ],
           ),
         ),
@@ -373,38 +423,67 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     }
   }
 
-  @override
+
+@override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F7),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          "AUTO-SCAN PRO",
+          style: GoogleFonts.rajdhani(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            letterSpacing: 1.5,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.account_circle_outlined, color: Colors.black87, size: 28),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfilEkrani()),
+              ).then((_) => _krediGuncelle());
+            },
+          ),
+          const SizedBox(width: 12),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+          // Padding'i biraz daha optimize ettik (vertical: 15)
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15), 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(), // 🚀 TERTEMİZ BAŞLIK
-              const SizedBox(height: 25),
+              // 🚀 _buildHeader() TAMAMEN KALDIRILDI, DİREKT KREDİ BANNER'I İLE BAŞLIYORUZ
               
-              _buildCreditBanner(), // 🚀 YENİ: KREDİ CÜZDANI / BANNER
-              const SizedBox(height: 25),
+              _buildCreditBanner(), 
+              const SizedBox(height: 20), // Boşluğu biraz daralttık
               
               _buildUploadCard(
                 title: "ARAÇ BİLGİSİ YÜKLE",
-                subtitle: "İlan veya araç bilgi ekran görüntüsü",
+                subtitle: "İlan ekran görüntüsü yükle",
                 icon: Icons.document_scanner_outlined,
                 file: fotoDetay,
                 onTap: () => fotoSec(),
               ),
               
-              const SizedBox(height: 25),
-              const Center(child: Text("VEYA MANUEL BİLGİ GİRİŞİ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2))),
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
+              const Center(child: Text("VEYA MANUEL BİLGİ GİRİŞİ", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2))),
+              const SizedBox(height: 12),
               _buildManuelInput(),
-              const SizedBox(height: 25),
-              _buildMainButton(),
-              const SizedBox(height: 45),
+              const SizedBox(height: 20),
+              _buildMainButton(), // 🚀 ŞİMDİ BU BUTON EKRANA JİLET GİBİ OTURDU!
+              
+              const SizedBox(height: 35),
               const Text("SON ANALİZLER", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              const SizedBox(height: 15),
+              const SizedBox(height: 12),
               _buildLastScans(), 
             ],
           ),
@@ -413,23 +492,7 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     );
   }
 
-  // 🚀 TERTEMİZ, SOLA YASLI BAŞLIK
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text("YAPAY ZEKA EKSPERTİZ", style: GoogleFonts.rajdhani(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1)),
-            const SizedBox(width: 8),
-            const Icon(Icons.circle, color: Colors.greenAccent, size: 12),
-          ],
-        ),
-        const SizedBox(height: 4),
-        const Text("Yapay Zeka Destekli Oto Ekspertiz", style: TextStyle(color: Colors.grey, fontSize: 12)),
-      ],
-    );
-  }
+
 
   // 🚀 YENİ: CÜZDAN / KREDİ BANNER'I
   Widget _buildCreditBanner() {
