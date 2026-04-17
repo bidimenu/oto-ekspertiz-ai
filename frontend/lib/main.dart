@@ -66,7 +66,7 @@ void main() async {
       if (Platform.isAndroid) {
         configuration = PurchasesConfiguration("goog_senin_android_keyin"); 
       } else {
-        configuration = PurchasesConfiguration("appl_senin_ios_keyin"); 
+        configuration = PurchasesConfiguration("appl_HGzgwVMZMDOuBdCeywAVCxxFldB"); 
       }
       
       await Purchases.configure(configuration);
