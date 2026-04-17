@@ -7,65 +7,82 @@ import 'dart:io';
 import 'dart:async';
 import 'package:desktop_window/desktop_window.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // 🚀 EKLENDİ
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:purchases_flutter/purchases_flutter.dart'; // 🚀 REVENUECAT EKLENDİ
 import 'rapor_sayfasi.dart';
-import 'package:frontend/serviceses/kredi_servisi.dart'; // 🚀 EKLENDİ
-import 'splash_ekrani.dart'; // 🚀 Splash ekranını ana dosyaya tanıttık
-import 'odeme_servisi.dart'; // 🚀 Ödeme servisini buraya import ettik
+import 'package:frontend/serviceses/kredi_servisi.dart';
+import 'splash_ekrani.dart';
+import 'odeme_servisi.dart';
 import 'package:frontend/onboarding_ekrani.dart';
 import 'profil_ekrani.dart';
-import 'package:device_info_plus/device_info_plus.dart'; // Bu paket yoksa terminalden ekle: flutter pub add device_info_plus
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-//const String baseApiUrl = "https://oto-backend-yeni-354386706606.europe-west3.run.app";
-
 
 Future<String> cihazIdHazirla() async {
   final prefs = await SharedPreferences.getInstance();
   String? cihazId = prefs.getString('cihaz_id');
 
   if (cihazId == null) {
-    // Eğer hafızada yoksa yeni alalım (Örn: Android ID veya iOS Identifier)
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-    // Basitlik olması açısından rastgele bir ID veya cihaz bilgisi alabilirsin
-    // Şimdilik test için SharedPreferences'ta kayıtlı olduğunu varsayalım.
-    // Senin mevcut 'kullanici_kredileri' tablosundaki 'cihaz_id' ile eşleşmeli.
+    // Test amaçlı fallback
   }
   return cihazId ?? "bilinmeyen_cihaz";
 }
-
 
 const bool isDebugMode = false; 
 
 String get baseApiUrl {
   if (!isDebugMode) {
     // ☁️ CANLI (PRODUCTION) SUNUCU (Cloud Run)
-    return "https://auto-scan-api-354386706606.europe-west1.run.app";
-    //return "https://oto-backend-yeni-354386706606.europe-west3.run.app";
+    return "https://auto-scan-api-354386706606.europe-west3.run.app/";
   }
   
   // 💻 LOCALHOST (DEBUG) SUNUCU - Windows için
   return "http://127.0.0.1:8000"; 
 }
-
 void main() async {
   // 1. Flutter motorunun ve binding'lerin hazır olduğundan emin oluyoruz
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env"); // 🚀 ENV'Yİ BAŞLAT
+  
+  try {
+    await dotenv.load(fileName: ".env"); // 🚀 ENV'Yİ BAŞLAT
+  } catch (e) {
+    print("DEBUG: .env dosyası bulunamadı.");
+  }
+
   // 2. 🚀 SUPABASE BAŞLATMA
   await Supabase.initialize(
     url: 'https://xwiodyndbewwmpsvrtql.supabase.co', 
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3aW9keW5kYmV3d21wc3ZydHFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3ODY2ODYsImV4cCI6MjA4NzM2MjY4Nn0.x9FdxhKHydLyunfXYdT-xZuhNzGWhrzrpA4Xr6lOMRs',
   );
 
-  // 3. 🚀 REVENUECAT (ÖDEME) BAŞLATMA
-  // Uygulama açılmadan önce finansal altyapıyı hazır hale getiriyoruz
-  await OdemeServisi().initialize();
+  // 3. 🚀 REVENUECAT (ÖDEME MOTORU) BAŞLATMA
+  // KRİTİK NOKTA: Sadece mobil cihazlarda çalıştır (Windows'ta atla)
+  if (Platform.isAndroid || Platform.isIOS) {
+    try {
+      await Purchases.setLogLevel(LogLevel.debug);
+      PurchasesConfiguration configuration;
+      
+      if (Platform.isAndroid) {
+        configuration = PurchasesConfiguration("goog_senin_android_keyin"); 
+      } else {
+        configuration = PurchasesConfiguration("appl_senin_ios_keyin"); 
+      }
+      
+      await Purchases.configure(configuration);
+      await OdemeServisi().initialize();
+      print("DEBUG: RevenueCat başarıyla başlatıldı.");
+    } catch (e) {
+      print("DEBUG: RevenueCat Hatası: $e");
+    }
+  } else {
+    // Windows veya Mac'te test ediyorsan çökmemesi için burası çalışır
+    print("DEBUG: Windows ortamında çalışıyor. Ödeme motoru (RevenueCat) atlandı.");
+  }
 
-
-    // 🚀 ID'Yİ BURADA OLUŞTUR VE KAYDET
+  // 4. 🚀 ID'Yİ BURADA OLUŞTUR VE KAYDET
   final prefs = await SharedPreferences.getInstance();
   if (prefs.getString('cihaz_id') == null) {
-    // Eğer yoksa, benzersiz bir ID oluştur (örneğin timestamp + random)
     String yeniId = "AS-${DateTime.now().millisecondsSinceEpoch}";
     await prefs.setString('cihaz_id', yeniId);
     print("DEBUG: Yeni Cihaz ID Oluşturuldu: $yeniId");
@@ -73,8 +90,7 @@ void main() async {
     print("DEBUG: Mevcut Cihaz ID: ${prefs.getString('cihaz_id')}");
   }
 
-
-  // 4. MASAÜSTÜ PENCERE AYARLARI (Windows testi için)
+  // 5. MASAÜSTÜ PENCERE AYARLARI (Windows testi için)
   if (Platform.isWindows) {
     await DesktopWindow.setWindowSize(const Size(450, 850));
     await DesktopWindow.setMinWindowSize(const Size(400, 800));
@@ -96,7 +112,6 @@ class OtoEkspertizApp extends StatelessWidget {
         textTheme: GoogleFonts.interTextTheme(),
         scaffoldBackgroundColor: const Color(0xFFF5F5F7),
       ),
-      // 🚀 Uygulama artık profesyonel bir Splash Screen ile açılıyor
       home: const SplashScreen(),
     );
   }
@@ -114,13 +129,13 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   bool yukleniyor = false;
   final picker = ImagePicker();
   final TextEditingController _manuelGirisController = TextEditingController();
-  final KrediServisi _krediServisi = KrediServisi(); // 🚀 SERVİS BAĞLANDI
+  final KrediServisi _krediServisi = KrediServisi();
 
   double ilerlemeYuzdesi = 0.0;
   Timer? _progressTimer;
   int mesajIndex = 0;
   Timer? _mesajTimer;
-  int mevcutKredi = 0; // 🚀 UI'da gösterilecek güncel bakiye
+  int mevcutKredi = 0; 
   
   late Future<List<GecmisAnaliz>> _gecmisVerisi;
   
@@ -137,25 +152,18 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
   void initState() {
     super.initState();
     _gecmisVerisi = getGecmisAnalizler(); 
-    _krediGuncelle(); // 🚀 UYGULAMA AÇILDIĞINDA KREDİYİ ÇEK
+    _krediGuncelle(); 
   }
 
-  // 🚀 KREDİYİ SUPABASE'DEN ÇEKİP UI'I GÜNCELLEYEN FONKSİYON
   Future<void> _krediGuncelle() async {
     final bakiye = await _krediServisi.bakiyeGetir();
     if (mounted) {
       setState(() {
         mevcutKredi = bakiye;
-      }
-      
-      
-      )
-      
-      ;
+      });
     }
   }
 
-// 🚀 KREDİ BİTTİĞİNDE ÇIKACAK ÖDEME (PAYWALL) EKRANI
   void _krediSatinAlModal() {
     showModalBottomSheet(
       context: context,
@@ -188,7 +196,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
               ),
               const SizedBox(height: 25),
               
-              // 🚀 1 KREDİ BUTONU
               _paketButonu("1 ANALİZ HAKKI", "99 TL", () async {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Apple'a bağlanılıyor...")));
                 bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_six_month");
@@ -209,7 +216,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
               
               const SizedBox(height: 12),
               
-              // 🚀 3 KREDİ BUTONU (POPÜLER)
               _paketButonu("3 ANALİZ (POPÜLER)", "199 TL", () async {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Apple'a bağlanılıyor...")));
                 bool odemeBasarili = await OdemeServisi().paketSatinAl("\$rc_lifetime");
@@ -230,7 +236,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
               
               const SizedBox(height: 15), 
 
-              // 🚀 APPLE REVIEW ZORUNLU: SATIN ALMALARI GERİ YÜKLE
               TextButton(
                 onPressed: () async {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -255,13 +260,11 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
               
               const SizedBox(height: 10),
 
-              // 🚀 APPLE REVIEW ZORUNLU: LEGAL LİNKLER
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
                     onTap: () {
-                      // Buraya ileride web linkini bağlayacağız
                       debugPrint("Kullanım Koşulları tıklandı");
                     },
                     child: const Text("Kullanım Koşulları", style: TextStyle(fontSize: 10, color: Colors.blue, decoration: TextDecoration.underline)),
@@ -269,7 +272,6 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
                   const Text("  |  ", style: TextStyle(fontSize: 10, color: Colors.grey)),
                   GestureDetector(
                     onTap: () {
-                      // Buraya ileride web linkini bağlayacağız
                       debugPrint("Gizlilik Politikası tıklandı");
                     },
                     child: const Text("Gizlilik Politikası", style: TextStyle(fontSize: 10, color: Colors.blue, decoration: TextDecoration.underline)),
@@ -383,20 +385,18 @@ class _AnalizEkraniState extends State<AnalizEkrani> {
     }
   }
 
-Future analizGonder() async {
+  Future analizGonder() async {
     if (fotoDetay == null && _manuelGirisController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen fotoğraf yükleyin veya araç bilgilerini yazın.")));
       return;
     }
 
-    // 🚀 ANALİZ ÖNCESİ KREDİ KİLİDİ
     bool krediHarcanabilir = await _krediServisi.krediKullan();
     if (!krediHarcanabilir) {
-      _krediSatinAlModal(); // Bakiye yoksa Paywall aç
+      _krediSatinAlModal(); 
       return;
     }
 
-    // Kredi başarılı harcandı, arayüzdeki sayıyı güncelle ve sürece başla
     _krediGuncelle();
     setState(() { yukleniyor = true; });
     _startLoadingProcess(); 
@@ -406,7 +406,6 @@ Future analizGonder() async {
       final String cleanUrl = baseApiUrl.trim();
       final targetUrl = Uri.parse('$cleanUrl/analiz');
       
-      // 🚀 YENİ: Uygulama hafızasından cihaz_id'yi çekiyoruz
       final prefs = await SharedPreferences.getInstance();
       final String? aktifCihazId = prefs.getString('cihaz_id');
       
@@ -417,8 +416,6 @@ Future analizGonder() async {
       }
       
       request.fields['manuel_text'] = _manuelGirisController.text;
-      
-      // 🚀 KRİTİK BAĞLANTI: Sunucu (FastAPI) artık analizi kimin yaptığını biliyor!
       request.fields['cihaz_id'] = aktifCihazId ?? 'bilinmiyor';
 
       var streamedResponse = await request.send().timeout(const Duration(seconds: 90));
@@ -442,7 +439,7 @@ Future analizGonder() async {
         setState(() {
           fotoDetay = null;
           _manuelGirisController.clear(); 
-          _gecmisVerisi = getGecmisAnalizler(); // Ana sayfadaki herkesin akışını tazeler
+          _gecmisVerisi = getGecmisAnalizler(); 
         });
 
       } else {
@@ -462,8 +459,7 @@ Future analizGonder() async {
     }
   }
 
-
-@override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
@@ -495,15 +491,12 @@ Future analizGonder() async {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          // Padding'i biraz daha optimize ettik (vertical: 15)
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15), 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🚀 _buildHeader() TAMAMEN KALDIRILDI, DİREKT KREDİ BANNER'I İLE BAŞLIYORUZ
-              
               _buildCreditBanner(), 
-              const SizedBox(height: 20), // Boşluğu biraz daralttık
+              const SizedBox(height: 20), 
               
               _buildUploadCard(
                 title: "ARAÇ BİLGİSİ YÜKLE",
@@ -518,7 +511,7 @@ Future analizGonder() async {
               const SizedBox(height: 12),
               _buildManuelInput(),
               const SizedBox(height: 20),
-              _buildMainButton(), // 🚀 ŞİMDİ BU BUTON EKRANA JİLET GİBİ OTURDU!
+              _buildMainButton(), 
               
               const SizedBox(height: 35),
               const Text("SON ANALİZLER", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
@@ -531,9 +524,6 @@ Future analizGonder() async {
     );
   }
 
-
-
-  // 🚀 YENİ: CÜZDAN / KREDİ BANNER'I
   Widget _buildCreditBanner() {
     return Container(
       width: double.infinity,
@@ -567,7 +557,6 @@ Future analizGonder() async {
               ),
             ],
           ),
-          // 4. "YÜKLE" butonu
           GestureDetector(
             onTap: _krediSatinAlModal, 
             child: Container(
@@ -767,8 +756,8 @@ class GecmisAnaliz {
   final String marka;
   final String model;
   final String yil;
-  final String tarih; // UI'da göstermek için formatlı tarih
-  final String? cihazId; // Yeni eklediğimiz alan
+  final String tarih; 
+  final String? cihazId; 
   final Map<String, dynamic> detay;
 
   GecmisAnaliz({
@@ -782,18 +771,22 @@ class GecmisAnaliz {
   });
 
   factory GecmisAnaliz.fromJson(Map<String, dynamic> json) {
-    // Supabase'den gelen 'olusturulma_tarihi'ni okunaklı bir tarihe çevirelim
-    DateTime hamTarih = DateTime.parse(json['olusturulma_tarihi'] ?? DateTime.now().toIso8601String());
-    String formatliTarih = "${hamTarih.day}.${hamTarih.month}.${hamTarih.year}";
+    String formatliTarih = "";
+    if (json['tarih'] != null) {
+      formatliTarih = json['tarih'].toString(); 
+    } else {
+      DateTime hamTarih = DateTime.parse(json['olusturulma_tarihi'] ?? DateTime.now().toIso8601String());
+      formatliTarih = "${hamTarih.day}.${hamTarih.month}.${hamTarih.year}";
+    }
 
     return GecmisAnaliz(
       id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
       marka: json['marka'] ?? '',
       model: json['model'] ?? '',
       yil: json['yil'] ?? '',
-      tarih: formatliTarih, // 'olusturulma_tarihi'nden türettik
-      cihazId: json['cihaz_id'], // Tabloya eklediğin yeni sütun
-      detay: json['sonuc_json'] ?? {}, // Tablodaki 'sonuc_json' ile eşleşti
+      tarih: formatliTarih,
+      cihazId: json['cihaz_id'],
+      detay: json['sonuc'] ?? json['sonuc_json'] ?? {}, 
     );
   }
 }

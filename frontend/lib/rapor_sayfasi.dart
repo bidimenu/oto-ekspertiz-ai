@@ -1,20 +1,49 @@
-import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'ekspertiz_sema.dart';
-import 'dart:convert';
+import 'dart:ui' as ui;
+import 'dart:io';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class RaporSayfasi extends StatelessWidget {
   final Map<String, dynamic> veri;
+  
+  // 🚀 EKRAN RESMİ ÇEKMEK İÇİN GEREKEN ANAHTAR
+  final GlobalKey _raporKey = GlobalKey();
 
-  const RaporSayfasi({super.key, required this.veri});
+  // GlobalKey eklediğimiz için 'const' kelimesini kaldırdık
+  RaporSayfasi({super.key, required this.veri});
 
-  // --- 🚀 PAYLAŞIM FONKSİYONU ---
-  void _raporuPaylas(BuildContext context) {
+// --- 🚀 GÜNCELLENMİŞ PAYLAŞIM FONKSİYONU (RESİM + METİN + KRONİK) ---
+  Future<void> _raporuPaylas(BuildContext context) async {
     try {
+      // 1. Bekleme mesajı
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Rapor görseli hazırlanıyor... 📸"), duration: Duration(seconds: 1)),
+      );
+
+      // 2. Ekranı HD resme çevir
+      RenderRepaintBoundary boundary = _raporKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+
+      // 3. Geçici hafızaya kaydet
+      final directory = await getTemporaryDirectory();
+      final imagePath = await File('${directory.path}/oto_analiz_pro.png').create();
+      await imagePath.writeAsBytes(pngBytes);
+
+      // 4. Metni hazırla
       final arac = veri['arac_bilgileri'] ?? {};
       final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
-      final piyasa = veri['piyasa_analizi'] ?? {};
+      
+      // 🚀 YENİ: Kronik sorunları listeye çevirip WhatsApp'ta şık duracak şekilde alt alta diziyoruz
+      List<dynamic> kronikListesi = teknik['kronik_sorunlar'] ?? [];
+      String kronikMetin = kronikListesi.isEmpty 
+          ? "- Bilinen kronik sorun bulunamadı." 
+          : kronikListesi.map((s) => "🔸 $s").join('\n');
 
       String paylasimMetni = """
 🚗 *OTO ANALİZ PRO RAPORU* 🚗
@@ -27,14 +56,26 @@ class RaporSayfasi extends StatelessWidget {
 🛠️ *Usta Yorumu:*
 "${teknik['yapay_zeka_mekanik_yorumu'] ?? 'Analiz mevcut değil.'}"
 
+⚠️ *Kronik Riskler:*
+$kronikMetin
+
+🔧 *Ağır Bakım Tahmini:* ${teknik['agir_bakim_tahmini'] ?? '-'}
+
 💡 _Bu rapor OTO ANALİZ PRO AI tarafından oluşturulmuştur._
 """;
 
-      Share.share(paylasimMetni);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Paylaşım başlatılamadı: $e")),
+      // 5. Resmi ve metni fırlat
+      await Share.shareXFiles(
+        [XFile(imagePath.path)],
+        text: paylasimMetni,
       );
+    } catch (e) {
+      debugPrint("Paylaşım hatası: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Paylaşım başlatılamadı: $e")),
+        );
+      }
     }
   }
 
@@ -46,7 +87,7 @@ class RaporSayfasi extends StatelessWidget {
     return temizSayi.replaceAllMapped(reg, (Match m) => '${m[1]}.');
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     final arac = veri['arac_bilgileri'] ?? {};
     final teknik = veri['teknik_ve_kronik_bilgiler'] ?? {};
@@ -64,7 +105,7 @@ class RaporSayfasi extends StatelessWidget {
             letterSpacing: 1,
           ),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFFF5F5F7),
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black87),
@@ -77,158 +118,185 @@ class RaporSayfasi extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           children: [
-            // 1. ANA ARAÇ KARTI
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 30, offset: const Offset(0, 15))],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "${arac['marka'] ?? ''} ${arac['model'] ?? ''}".toUpperCase(),
-                    style: GoogleFonts.rajdhani(fontSize: 22, fontWeight: FontWeight.bold, height: 1.1, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        arac['kasa_kodu'] ?? "Genel Analiz",
-                        style: const TextStyle(color: Color(0xFF00D2D3), fontWeight: FontWeight.bold, fontSize: 16),
+            // 🚀 FOTOĞRAFI ÇEKİLECEK ALAN (RepaintBoundary)
+            RepaintBoundary(
+              key: _raporKey,
+              child: Container(
+                color: const Color(0xFFF5F5F7), // Resmin arka planı siyah olmasın diye
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  children: [
+                    // 1. ANA ARAÇ KARTI
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 30, offset: const Offset(0, 15))],
                       ),
-                      const SizedBox(width: 12),
-                      Flexible( 
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00D2D3).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            (arac['fiyat'].toString().contains("Bilinmiyor") || arac['fiyat'] == null)
-                                ? "Fiyat Belirtilmedi"
-                                : "${_formatSayi(arac['fiyat'])} TL",
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF00B2B2)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF0F0F0))),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _ozetHucre("YIL", arac['yil'].toString()),
-                      _ozetHucre("KM", _formatSayi(arac['kilometre'])),
-                      _ozetHucre("YAKIT", arac['yakit_tipi'] ?? "-"),
-                      _ozetHucre("VİTES", arac['vites'] ?? "-"),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 2. MEKANİK VE KRONİK BİLGİLER
-            _eliteBilgiKarti(
-              baslik: "Ustasının Mekanik Analizi",
-              icon: Icons.auto_awesome,
-              accentColor: Colors.blueAccent,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _bilgiSatiri("Motor Kodu", teknik['motor_kodu'])),
-                      const SizedBox(width: 15),
-                      Expanded(child: _bilgiSatiri("Şanzıman", teknik['sanziman_tipi'])),
-                    ],
-                  ),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00D2D3).withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: const Color(0xFF00D2D3).withOpacity(0.1)),
-                    ),
-                    child: Text(
-                      teknik['yapay_zeka_mekanik_yorumu'] ?? "Analiz tamamlanıyor...",
-                      style: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("⚠️ KRONİK RİSKLER & USTA TAVSİYESİ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.redAccent, letterSpacing: 0.5)),
-                  const SizedBox(height: 10),
-                  ...(teknik['kronik_sorunlar'] as List? ?? []).map((s) => 
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.redAccent),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(s, style: const TextStyle(fontSize: 13, color: Colors.black87))),
+                          Text(
+                            "${arac['marka'] ?? ''} ${arac['model'] ?? ''}".toUpperCase(),
+                            style: GoogleFonts.rajdhani(fontSize: 22, fontWeight: FontWeight.bold, height: 1.1, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                arac['kasa_kodu'] ?? "Genel Analiz",
+                                style: const TextStyle(color: Color(0xFF00D2D3), fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              const SizedBox(width: 12),
+                              Flexible( 
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00D2D3).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    (arac['fiyat'].toString().contains("Bilinmiyor") || arac['fiyat'] == null)
+                                        ? "Fiyat Belirtilmedi"
+                                        : "${_formatSayi(arac['fiyat'])} TL",
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF00B2B2)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF0F0F0))),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _ozetHucre("YIL", arac['yil'].toString()),
+                              _ozetHucre("KM", _formatSayi(arac['kilometre'])),
+                              _ozetHucre("YAKIT", arac['yakit_tipi'] ?? "-"),
+                              _ozetHucre("VİTES", arac['vites'] ?? "-"),
+                            ],
+                          ),
                         ],
                       ),
-                    )),
-                  const Divider(height: 30),
-                  _bilgiSatiri("Ağır Bakım Tahmini", teknik['agir_bakim_tahmini']),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
 
-            // 3. PİYASA ANALİZİ (YENİ ROZET SİSTEMİ)
-            _eliteBilgiKarti(
-              baslik: "Piyasa ve Fiyat",
-              icon: Icons.insights,
-              accentColor: const Color(0xFF00D2D3),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _bilgiSatiri("Satış Hızı", piyasa['ikinci_el_likiditesi']),
-                  
-                  // 🚀 YENİ: Fiyat Durumu Rozeti (Badge)
-                  Text("FİYAT DURUMU", style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  const SizedBox(height: 8),
-                  _fiyatRozeti(piyasa['fiyat_degerlendirmesi']?.toString() ?? ""),
-                  const SizedBox(height: 10),
-                ],
+                    // 2. MEKANİK VE KRONİK BİLGİLER
+                    _eliteBilgiKarti(
+                      baslik: "Ustasının Mekanik Analizi",
+                      icon: Icons.auto_awesome,
+                      accentColor: Colors.blueAccent,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _bilgiSatiri("Motor Kodu", teknik['motor_kodu'])),
+                              const SizedBox(width: 15),
+                              Expanded(child: _bilgiSatiri("Şanzıman", teknik['sanziman_tipi'])),
+                            ],
+                          ),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00D2D3).withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: const Color(0xFF00D2D3).withOpacity(0.1)),
+                            ),
+                            child: Text(
+                              teknik['yapay_zeka_mekanik_yorumu'] ?? "Analiz tamamlanıyor...",
+                              style: const TextStyle(fontSize: 13, height: 1.5, color: Colors.black87, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text("⚠️ KRONİK RİSKLER & USTA TAVSİYESİ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.redAccent, letterSpacing: 0.5)),
+                          const SizedBox(height: 10),
+                          ...(teknik['kronik_sorunlar'] as List? ?? []).map((s) => 
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.redAccent),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(s, style: const TextStyle(fontSize: 13, color: Colors.black87))),
+                                ],
+                              ),
+                            )),
+                          const Divider(height: 30),
+                          _bilgiSatiri("Ağır Bakım Tahmini", teknik['agir_bakim_tahmini']),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // 3. PİYASA ANALİZİ
+                    _eliteBilgiKarti(
+                      baslik: "Piyasa ve Fiyat",
+                      icon: Icons.insights,
+                      accentColor: const Color(0xFF00D2D3),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _bilgiSatiri("Satış Hızı", piyasa['ikinci_el_likiditesi']),
+                          Text("FİYAT DURUMU", style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                          const SizedBox(height: 8),
+                          _fiyatRozeti(piyasa['fiyat_degerlendirmesi']?.toString() ?? ""),
+                          const SizedBox(height: 10),
+                        ],
+                      ),
+                    ),
+                    
+                    // APPLE REVIEW UYARISI
+                    const SizedBox(height: 20),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.orange.withOpacity(0.4), width: 1.5),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.gavel_rounded, color: Colors.orange, size: 22),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              "Bu analiz yapay zeka tarafından üretilmiştir ve yasal bir ekspertiz raporu niteliği taşımaz. Araç alım-satım işlemlerinden önce yetkili merkezlere başvurunuz.",
+                              style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w500, height: 1.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
             
-            // 🚀 APPLE REVIEW İÇİN ZORUNLU AI UYARISI (EN ALTTA, TEK BAŞINA)
-            const SizedBox(height: 20),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.orange.withOpacity(0.4), width: 1.5),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.gavel_rounded, color: Colors.orange, size: 22),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "Bu analiz yapay zeka tarafından üretilmiştir ve yasal bir ekspertiz raporu niteliği taşımaz. Araç alım-satım işlemlerinden önce yetkili merkezlere başvurunuz.",
-                      style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w500, height: 1.4),
-                    ),
-                  ),
-                ],
+            // 🚀 EKRANDA GÖRÜNEN AMA FOTOĞRAFTA ÇIKMAYACAK PAYLAŞ BUTONU
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: ElevatedButton.icon(
+                onPressed: () => _raporuPaylas(context),
+                icon: const Icon(Icons.share, color: Colors.white),
+                label: const Text("RAPORU WHATSAPP'TAN GÖNDER", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D2D3),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  elevation: 2,
+                ),
               ),
             ),
             const SizedBox(height: 40), 
@@ -238,14 +306,14 @@ class RaporSayfasi extends StatelessWidget {
     );
   }
 
- // --- 🚀 YENİ: TAŞMA HATASI GİDERİLMİŞ, KISA ROZET FONKSİYONU ---
+  // --- 🚀 KULLANICININ ÖZEL TASARIM WIDGET'LARI ---
+
   Widget _fiyatRozeti(String deger) {
     String altMetin = deger.toUpperCase();
     Color arkaplanRengi;
     Color yaziRengi;
     IconData ikon;
 
-    // Metinleri ekranı patlatmamak için çok kısa (2 kelime) tutuyoruz
     if (altMetin.contains("PAHALI") || altMetin.contains("YÜKSEK")) {
       arkaplanRengi = Colors.redAccent.withOpacity(0.1);
       yaziRengi = Colors.redAccent;
@@ -280,12 +348,11 @@ class RaporSayfasi extends StatelessWidget {
         children: [
           Icon(ikon, color: yaziRengi, size: 18),
           const SizedBox(width: 8),
-          // 🚀 LEAD DOKUNUŞU: Ne olursa olsun taşmayı engellemek için Flexible eklendi
           Flexible(
             child: Text(
               altMetin,
               style: TextStyle(color: yaziRengi, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
-              overflow: TextOverflow.ellipsis, // Sığmazsa "..." koyar, kırmızı ekran vermez
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -320,7 +387,7 @@ class RaporSayfasi extends StatelessWidget {
     );
   }
 
-Widget _eliteBilgiKarti({required String baslik, required IconData icon, required Color accentColor, required Widget child}) {
+  Widget _eliteBilgiKarti({required String baslik, required IconData icon, required Color accentColor, required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -345,5 +412,4 @@ Widget _eliteBilgiKarti({required String baslik, required IconData icon, require
       ),
     );
   }
-  
 }

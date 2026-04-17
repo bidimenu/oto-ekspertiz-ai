@@ -6,28 +6,35 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // 🚀 Eklendi
 import 'onboarding_ekrani.dart';
 import 'splash_ekrani.dart';
 import 'rapor_sayfasi.dart';
+import 'package:http/http.dart' as http;
 
 class ProfilEkrani extends StatelessWidget {
   const ProfilEkrani({super.key});
 
-  // 🚀 Sadece bu cihaza ait analizleri getiren fonksiyon
-  Future<List<GecmisAnaliz>> _getBenimAnalizlerim() async {
+Future<List<GecmisAnaliz>> _getBenimAnalizlerim() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? cihazId = prefs.getString('cihaz_id');
 
-      if (cihazId == null) return [];
+      print("DEBUG: Profil için aranan ID: $cihazId"); // 🚀 Bunu ekle
+
+      if (cihazId == null) {
+        print("DEBUG: Cihaz ID bulunamadı, SharedPreferences boş!");
+        return [];
+      }
 
       final response = await Supabase.instance.client
           .from('analizler')
           .select()
-          .eq('cihaz_id', cihazId) // 🔑 Filtreleme burada yapılıyor
+          .eq('cihaz_id', cihazId) 
           .order('olusturulma_tarihi', ascending: false);
 
+      print("DEBUG: Veritabanından dönen satır sayısı: ${response.length}"); // 🚀 Bunu ekle
+      
       final List<dynamic> data = response;
       return data.map((item) => GecmisAnaliz.fromJson(item)).toList();
     } catch (e) {
-      debugPrint("Profil verisi hatası: $e");
+      print("DEBUG: Profil yükleme hatası: $e");
       return [];
     }
   }
@@ -234,7 +241,5 @@ void _verileriSilOnay(BuildContext context) {
       ),
     );
   }
-
-
 
 }
