@@ -225,6 +225,34 @@ async def gecmis_analizleri_getir():
     finally:
         db.close()
 
+
+@app.post("/verileri-sil")
+async def verileri_sil_ve_anonimlestir(cihaz_id: str = Form(...)):
+    db = SessionLocal()
+    try:
+        # 🚀 KRİTİK NOKTA: Veriyi silmiyoruz (delete), sadece cihaz_id'yi siliyoruz (update).
+        # Böylece veri anonim olarak senin veritabanında ML eğitimi için kalıyor.
+        kayitlar = db.query(AracAnaliz).filter(AracAnaliz.cihaz_id == cihaz_id).all()
+        
+        if not kayitlar:
+            return {"mesaj": "Silinecek veri bulunamadı."}
+
+        for kayit in kayitlar:
+            kayit.cihaz_id = "anonim_silinmis" # Orijinal ID'yi eziyoruz
+            
+        db.commit()
+        print(f"✅ {cihaz_id} ID'li kullanıcının verileri anonimleştirildi.")
+        return {"mesaj": "Veriler başarıyla anonimleştirildi."}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"🚨 DB Silme Hatası: {e}")
+        raise HTTPException(status_code=500, detail="İşlem başarısız oldu.")
+    finally:
+        db.close()
+
+        
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

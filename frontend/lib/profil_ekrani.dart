@@ -189,7 +189,7 @@ class ProfilEkrani extends StatelessWidget {
     );
   }
 
-  void _verileriSilOnay(BuildContext context) {
+void _verileriSilOnay(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -200,14 +200,33 @@ class ProfilEkrani extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, elevation: 0),
             onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const SplashScreen()),
-                  (route) => false,
-                );
+              
+              // 🚀 1. ÖNCE VERİTABANINA HABER VER (ANONİMLEŞTİR)
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                final String? cihazId = prefs.getString('cihaz_id');
+                
+                if (cihazId != null) {
+                  // baseApiUrl'nin import edildiğinden emin ol (örneğin: import 'main.dart';)
+                  final targetUrl = Uri.parse('$baseApiUrl/verileri-sil'); 
+                  await http.post(targetUrl, body: {'cihaz_id': cihazId});
+                  print("DEBUG: Sunucuya silme/anonimleştirme sinyali gitti.");
+                }
+                
+                // 🚀 2. SONRA CİHAZI SIFIRLA VE BAŞA DÖN
+                await prefs.clear(); // Telefondaki tüm izleri sil
+                
+                if (context.mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const SplashScreen()),
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                print("DEBUG: Silme işlemi sırasında hata: $e");
+                // Hata olsa bile kullanıcıyı içeride tutmamak için sıfırlamaya zorlayabilirsin
               }
+              
             },
             child: const Text("SİL VE SIFIRLA", style: TextStyle(color: Colors.white)),
           ),
@@ -215,4 +234,7 @@ class ProfilEkrani extends StatelessWidget {
       ),
     );
   }
+
+
+
 }
